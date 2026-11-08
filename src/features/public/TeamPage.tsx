@@ -1,20 +1,32 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { ArrowLeft, Mail, Maximize2, X } from 'lucide-react'
+import { ArrowLeft, Maximize2, X } from 'lucide-react'
 import { DisplayText } from '@/components/comic/ComicPrimitives'
+import mynavathiPhoto from '@/assets/team/mynavathi.png'
+import prakashPhoto from '@/assets/team/prakash.png'
+import sangeethaPhoto from '@/assets/team/sangeetha.png'
+import simonGiriPhoto from '@/assets/team/simon-giri.png'
+import tomyPhoto from '@/assets/team/tomy.png'
+import karthigaiPhoto from '@/assets/team/karthigai.png'
+import amalanathanPhoto from '@/assets/team/amalanathan.png'
+import anushaPhoto from '@/assets/team/anusha.png'
+import ananyaPhoto from '@/assets/team/ananya.png'
+import deerajPhoto from '@/assets/team/deeraj.png'
+import hariniPhoto from '@/assets/team/harini.png'
+import palguniPhoto from '@/assets/team/palguni.png'
+import shravanPhoto from '@/assets/team/shravan.png'
+import bharathPhoto from '@/assets/team/bharath.png'
+import janyashreePhoto from '@/assets/team/janyashree.png'
+import praveenPhoto from '@/assets/team/praveen.png'
 import './team.css'
 
 /* ────────────────────────────────────────────────────────────────────────────
    EDIT THE TEAM HERE. Everything on the page is drawn from this array.
-   Replace the placeholder text, and add `photo: '/path/or/import.jpg'` to a person to
-   show a real portrait instead of the silhouette.
+   Add `photo: importedImage` to a person to show a real portrait instead of the silhouette.
    ──────────────────────────────────────────────────────────────────────────── */
 interface Person {
   name: string
   role: string
-  department: string
-  blurb: string
-  contact: string
   photo?: string
 }
 
@@ -26,10 +38,6 @@ interface TapeGroup {
   people: Person[]
 }
 
-const DEPARTMENT = 'Department of Commerce'
-const BLURB = 'A short line about this person goes here. Tell the festival what they love about Blossoms.'
-const MAIL = 'name@christuniversity.in'
-
 const TAPES: TapeGroup[] = [
   {
     id: 'faculty',
@@ -37,10 +45,10 @@ const TAPES: TapeGroup[] = [
     subtitle: 'The teachers who guide the festival.',
     color: '#FDB813',
     people: [
-      { name: 'Dr. Mynavathi L', role: 'Faculty Coordinator', department: DEPARTMENT, blurb: BLURB, contact: MAIL },
-      { name: 'Dr. Prakash M', role: 'Faculty Coordinator', department: DEPARTMENT, blurb: BLURB, contact: MAIL },
-      { name: 'Dr. Sangeetha G Nagarkatte', role: 'Faculty Coordinator', department: DEPARTMENT, blurb: BLURB, contact: MAIL },
-      { name: 'Dr. Simon Giri', role: 'Faculty Coordinator', department: DEPARTMENT, blurb: BLURB, contact: MAIL },
+      { name: 'Dr. Mynavathi L', role: 'Faculty Coordinator', photo: mynavathiPhoto },
+      { name: 'Dr. Prakash M', role: 'Faculty Coordinator', photo: prakashPhoto },
+      { name: 'Dr. Sangeetha G Nagarkatte', role: 'Faculty Coordinator', photo: sangeethaPhoto },
+      { name: 'Dr. Simon Giri', role: 'Faculty Coordinator', photo: simonGiriPhoto },
     ],
   },
   {
@@ -49,14 +57,14 @@ const TAPES: TapeGroup[] = [
     subtitle: 'The core team running Blossoms.',
     color: '#ED1E79',
     people: [
-      { name: 'Shravan S', role: 'Core Team', department: DEPARTMENT, blurb: BLURB, contact: MAIL },
-      { name: 'S Harini', role: 'Core Team', department: DEPARTMENT, blurb: BLURB, contact: MAIL },
-      { name: 'V Praveen', role: 'Core Team', department: DEPARTMENT, blurb: BLURB, contact: MAIL },
-      { name: 'Alamuru Bharath Simha Reddy', role: 'Core Team', department: DEPARTMENT, blurb: BLURB, contact: MAIL },
-      { name: 'Ananya Narasimha Murthy', role: 'Core Team', department: DEPARTMENT, blurb: BLURB, contact: MAIL },
-      { name: 'Palguni Bhat', role: 'Core Team', department: DEPARTMENT, blurb: BLURB, contact: MAIL },
-      { name: 'Deeraj S', role: 'Core Team', department: DEPARTMENT, blurb: BLURB, contact: MAIL },
-      { name: 'Janyashree P Malur', role: 'Core Team', department: DEPARTMENT, blurb: BLURB, contact: MAIL },
+      { name: 'Shravan S', role: 'Core Team', photo: shravanPhoto },
+      { name: 'S Harini', role: 'Core Team', photo: hariniPhoto },
+      { name: 'V Praveen', role: 'Core Team', photo: praveenPhoto },
+      { name: 'Alamuru Bharath Simha Reddy', role: 'Core Team', photo: bharathPhoto },
+      { name: 'Ananya Narasimha Murthy', role: 'Core Team', photo: ananyaPhoto },
+      { name: 'Palguni Bhat', role: 'Core Team', photo: palguniPhoto },
+      { name: 'Deeraj S', role: 'Core Team', photo: deerajPhoto },
+      { name: 'Janyashree P Malur', role: 'Core Team', photo: janyashreePhoto },
     ],
   },
   {
@@ -65,10 +73,10 @@ const TAPES: TapeGroup[] = [
     subtitle: 'The heads behind the department.',
     color: '#0088E8',
     people: [
-      { name: 'Dr. Tomy K Kallarakal', role: 'Dean\nSchool of Commerce, Finance and Accountancy', department: DEPARTMENT, blurb: BLURB, contact: MAIL },
-      { name: 'Dr. Karthigai Prakasam', role: 'Associate Dean\nSchool of Commerce, Finance and Accountancy', department: DEPARTMENT, blurb: BLURB, contact: MAIL },
-      { name: 'Dr. Amalanathan S', role: 'Head of Department\nDepartment of Commerce', department: DEPARTMENT, blurb: BLURB, contact: MAIL },
-      { name: 'Dr. Anusha Srinivasan Iyer', role: 'Associate Head of Department\nDepartment of Commerce', department: DEPARTMENT, blurb: BLURB, contact: MAIL },
+      { name: 'Dr. Tomy K Kallarakal', role: 'Dean\nSchool of Commerce, Finance and Accountancy', photo: tomyPhoto },
+      { name: 'Dr. Karthigai Prakasam', role: 'Associate Dean\nSchool of Commerce, Finance and Accountancy', photo: karthigaiPhoto },
+      { name: 'Dr. Amalanathan S', role: 'Head of Department\nDepartment of Commerce', photo: amalanathanPhoto },
+      { name: 'Dr. Anusha Srinivasan Iyer', role: 'Associate Head of Department\nDepartment of Commerce', photo: anushaPhoto },
     ],
   },
 ]
@@ -177,11 +185,10 @@ function TapeVisual({ group, open }: { group: TapeGroup; open: boolean }) {
 /* ───────────── Trading card ───────────── */
 
 function PersonCard({ person, color, onEnlarge }: { person: Person; color: string; onEnlarge?: () => void }) {
-  const [flipped, setFlipped] = useState(false)
   return (
-    <div className={`tcard ${flipped ? 'is-flipped' : ''}`} style={{ '--c': color } as CSSProperties}>
+    <div className="tcard" style={{ '--c': color } as CSSProperties}>
       <div className="tcard__inner">
-        <div className="tcard__face tcard__face--front" aria-hidden={flipped}>
+        <div className="tcard__face">
           <div className="tcard__head">
             <span className="tcard__badge" aria-hidden="true">B</span>
             <span>Blossoms Heroes</span>
@@ -203,23 +210,7 @@ function PersonCard({ person, color, onEnlarge }: { person: Person; color: strin
           <p className="tcard__role">{person.role}</p>
           <span className="tcard__shine" />
         </div>
-        <div className="tcard__face tcard__face--back" aria-hidden={!flipped}>
-          <p className="tcard__back-title">{person.name}</p>
-          <p className="tcard__kicker">Department</p>
-          <p className="tcard__dept">{person.department}</p>
-          <p className="tcard__blurb">{person.blurb}</p>
-          <p className="tcard__contact">
-            <Mail aria-hidden="true" />
-            <span>{person.contact}</span>
-          </p>
-          <span className="tcard__shine" />
-        </div>
       </div>
-      <button type="button" className="tcard__btn" aria-pressed={flipped} onClick={() => setFlipped((f) => !f)}>
-        <span className="sr-only">
-          {person.name}, {person.role}. {flipped ? 'Showing details. Flip to the front.' : 'Flip the card for details.'}
-        </span>
-      </button>
       {onEnlarge && (
         <button type="button" className="tcard__enlarge" aria-label={`Enlarge ${person.name}'s card`} onClick={onEnlarge}>
           <Maximize2 aria-hidden="true" />
@@ -285,7 +276,7 @@ function CardOverlay({ person, color, onClose }: { person: Person; color: string
       <motion.div className="team-modal__card" initial={{ scale: 0.8 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 20 }}>
         <PersonCard person={person} color={color} />
       </motion.div>
-      <p className="team-modal__hint">Tap the card to flip it · Esc to close</p>
+      <p className="team-modal__hint">Esc to close</p>
     </motion.div>
   )
 }
