@@ -34,11 +34,14 @@ export function slotDate(slot: EventScheduleSlot | undefined): string | null {
   return null
 }
 
-/** "Sat, 14 Nov · 11:00 am – 6:00 pm", "Sun, 29 Nov · Online", or "Thu, 12 Nov · Timing TBA". */
+/**
+ * "Sat, 14 Nov · 11:00 am", "Sun, 29 Nov · Online", or "Thu, 12 Nov · Timing TBA".
+ * Participants only see when an event starts; end times stay admin-only (they still drive clash checks).
+ */
 export function slotLabel(slot: EventScheduleSlot | undefined): string {
   if (!slot) return 'Schedule to be announced'
   const day = formatDay(slotDate(slot))
-  if (slot.starts_at && slot.ends_at) return `${day} · ${formatTime(slot.starts_at)} – ${formatTime(slot.ends_at)}`
+  if (slot.starts_at) return `${day} · ${formatTime(slot.starts_at)}`
   return `${day} · ${slot.slot_title || 'Timing TBA'}`
 }
 

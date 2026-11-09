@@ -18,6 +18,8 @@ import shravanPhoto from '@/assets/team/shravan.png'
 import bharathPhoto from '@/assets/team/bharath.png'
 import janyashreePhoto from '@/assets/team/janyashree.png'
 import praveenPhoto from '@/assets/team/praveen.png'
+import akashPhoto from '@/assets/team/akash.png'
+import anjaliPhoto from '@/assets/team/anjali.png'
 import './team.css'
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -77,6 +79,8 @@ const TAPES: TapeGroup[] = [
       { name: 'Dr. Karthigai Prakasam', role: 'Associate Dean\nSchool of Commerce, Finance and Accountancy', photo: karthigaiPhoto },
       { name: 'Dr. Amalanathan S', role: 'Head of Department\nDepartment of Commerce', photo: amalanathanPhoto },
       { name: 'Dr. Anusha Srinivasan Iyer', role: 'Associate Head of Department\nDepartment of Commerce', photo: anushaPhoto },
+      { name: 'Akash A', role: 'Cultural Coordinator', photo: akashPhoto },
+      { name: 'Anjali Joseph Kunnan', role: 'IQAC Coordinator', photo: anjaliPhoto },
     ],
   },
 ]

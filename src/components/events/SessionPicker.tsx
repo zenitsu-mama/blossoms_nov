@@ -41,7 +41,6 @@ export function SessionPicker({
               </span>
               <span className={cn('block text-[11px] font-semibold', selected ? 'text-paper/75' : 'text-ink/60')}>
                 {slot.slot_title ?? 'Session'}
-                {slot.ends_at ? ` · until ${formatTime(slot.ends_at)}` : ''}
               </span>
             </button>
           )
