@@ -4,7 +4,7 @@ import artsUrl from '@/assets/brand/panel-arts.webp'
 import literatureUrl from '@/assets/brand/panel-literature.webp'
 import stageUrl from '@/assets/brand/panel-stage.webp'
 import theatreUrl from '@/assets/brand/panel-theatre.webp'
-import heroUrl from '@/assets/brand/hero-b.jpg'
+import heroUrl from '@/assets/brand/hero-b.webp'
 
 export const ABOUT_TITLE_ID = 'landing-about-title'
 

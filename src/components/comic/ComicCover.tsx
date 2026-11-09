@@ -1,5 +1,5 @@
 import blossomsLogoUrl from '@/assets/brand/blossoms-2026-27-lockup.webp'
-import heroCoverUrl from '@/assets/brand/hero-b.jpg'
+import heroCoverUrl from '@/assets/brand/hero-b.webp'
 
 export const comicCoverImages = [heroCoverUrl, blossomsLogoUrl]
 

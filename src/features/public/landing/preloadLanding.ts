@@ -1,4 +1,4 @@
-import heroUrl from '@/assets/brand/hero-b.jpg'
+import heroUrl from '@/assets/brand/hero-b.webp'
 import burstUrl from '@/assets/brand/bg-purple-burst.svg'
 import lockupUrl from '@/assets/brand/blossoms-2026-27-lockup.webp'
 import artsUrl from '@/assets/brand/panel-arts.webp'

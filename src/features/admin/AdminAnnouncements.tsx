@@ -14,7 +14,9 @@ import {
   listSentNotifications,
   saveAnnouncement,
   sendNotification,
+  updateNotification,
   type AnnouncementInput,
+  type SentNotification,
 } from '@/lib/api/admin'
 import { useAuth } from '@/lib/auth/authStore'
 import { formatDateTime } from '@/lib/eventDisplay'
@@ -163,6 +165,7 @@ function NotificationsPanel() {
   const [body, setBody] = useState('')
   const [link, setLink] = useState('')
   const [eventId, setEventId] = useState('')
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   const send = useMutation({
     mutationFn: () => sendNotification({ title, body, link: link || null, audience: eventId ? 'event' : 'all', event_id: eventId || null }, admin!.id),
@@ -213,23 +216,94 @@ function NotificationsPanel() {
         <Muted>Nothing sent yet.</Muted>
       ) : (
         <ul className="space-y-2">
-          {sent.map((n) => (
-            <li key={n.id} className="rounded-xl border-2 border-ink/20 p-3 flex justify-between gap-2">
-              <div>
-                <p className="font-semibold text-sm">{n.title}</p>
-                <p className="text-xs text-ink/70">{n.body}</p>
-                <p className="text-[11px] text-ink/40 mt-1">
-                  {n.audience === 'all' ? 'All students' : `Registered for ${events.find((e) => e.id === n.event_id)?.title ?? 'an event'}`} ·{' '}
-                  {formatDateTime(n.created_at)}
-                </p>
-              </div>
-              <button onClick={async () => (await confirmDialog('Delete this notification for everyone?', { danger: true, confirmLabel: 'Delete' })) && remove.mutate(n.id)} aria-label="Delete notification" className="p-1.5 self-start text-ink/50 hover:text-comic-red-deep">
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </li>
-          ))}
+          {sent.map((n) => {
+            const audience = n.audience === 'all' ? 'All students' : `Registered for ${events.find((e) => e.id === n.event_id)?.title ?? 'an event'}`
+            return editingId === n.id ? (
+              <li key={n.id} className="rounded-xl border-2 border-primary p-3">
+                <SentNotificationEditor
+                  notification={n}
+                  audience={audience}
+                  onDone={() => setEditingId(null)}
+                  onSaved={() => queryClient.invalidateQueries({ queryKey: ['admin-notifications'] })}
+                />
+              </li>
+            ) : (
+              <li key={n.id} className="rounded-xl border-2 border-ink/20 p-3 flex justify-between gap-2">
+                <div>
+                  <p className="font-semibold text-sm">{n.title}</p>
+                  <p className="text-xs text-ink/70 whitespace-pre-line">{n.body}</p>
+                  {n.link && <p className="text-[11px] text-primary mt-0.5">{n.link}</p>}
+                  <p className="text-[11px] text-ink/40 mt-1">
+                    {audience} · {formatDateTime(n.created_at)}
+                  </p>
+                </div>
+                <div className="flex gap-1 self-start">
+                  <button onClick={() => setEditingId(n.id)} aria-label={`Edit ${n.title}`} className="p-1.5 text-ink/50 hover:text-ink">
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button onClick={async () => (await confirmDialog('Delete this notification for everyone?', { danger: true, confirmLabel: 'Delete' })) && remove.mutate(n.id)} aria-label="Delete notification" className="p-1.5 text-ink/50 hover:text-comic-red-deep">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </li>
+            )
+          })}
         </ul>
       )}
     </Panel>
+  )
+}
+
+/** Inline editor for a sent notification: wording and link only, the audience stays as sent. */
+function SentNotificationEditor({
+  notification,
+  audience,
+  onDone,
+  onSaved,
+}: {
+  notification: SentNotification
+  audience: string
+  onDone: () => void
+  onSaved: () => void
+}) {
+  const [title, setTitle] = useState(notification.title)
+  const [body, setBody] = useState(notification.body)
+  const [link, setLink] = useState(notification.link ?? '')
+  const save = useMutation({
+    mutationFn: () => updateNotification(notification.id, { title, body, link: link.trim() || null }),
+    onSuccess: () => {
+      toast.success('Notification updated')
+      onSaved()
+      onDone()
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (!title.trim() || !body.trim()) return toast.error('Add a title and message.')
+        if (link.trim() && !link.trim().startsWith('/')) return toast.error('Link must be a site path such as /events/quiz')
+        save.mutate()
+      }}
+      className="space-y-2"
+    >
+      <Input label="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
+      <label className="flex flex-col gap-1 text-sm font-semibold">
+        Message
+        <textarea rows={3} value={body} onChange={(e) => setBody(e.target.value)} className={textareaClass} />
+      </label>
+      <Input label="Link (optional)" placeholder="/events/quiz" value={link} onChange={(e) => setLink(e.target.value)} />
+      <p className="text-[11px] text-ink/50">Sent to: {audience}. Students who already opened it will see the new wording.</p>
+      <div className="flex gap-2">
+        <Button type="submit" size="sm" isLoading={save.isPending}>
+          Save changes
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={onDone}>
+          Cancel
+        </Button>
+      </div>
+    </form>
   )
 }

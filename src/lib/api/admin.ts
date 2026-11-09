@@ -319,10 +319,20 @@ export async function sendNotification(input: NotificationInput, createdBy: stri
   if (error) throw new Error(error.message)
 }
 
+/** Edits a sent notification's wording. Students see the change; who it went to stays the same. */
+export async function updateNotification(id: string, patch: { title: string; body: string; link: string | null }): Promise<void> {
+  const { error } = await supabase
+    .from('notifications')
+    .update({ title: patch.title.trim(), body: patch.body.trim(), link: patch.link || null })
+    .eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
 export interface SentNotification {
   id: string
   title: string
   body: string
+  link: string | null
   audience: string
   event_id: string | null
   student_id: string | null
@@ -332,7 +342,7 @@ export interface SentNotification {
 export async function listSentNotifications(limit = 50): Promise<SentNotification[]> {
   const { data, error } = await supabase
     .from('notifications')
-    .select('id, title, body, audience, event_id, student_id, created_at')
+    .select('id, title, body, link, audience, event_id, student_id, created_at')
     .neq('audience', 'student')
     .order('created_at', { ascending: false })
     .limit(limit)
