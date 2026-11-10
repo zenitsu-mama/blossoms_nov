@@ -20,7 +20,7 @@ type MonthFilter = 'all' | 'nov' | 'dec'
 
 const DIVISION_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   Arts: { bg: 'bg-[#ed1e79]/15', text: 'text-[#ed1e79]', border: 'border-[#ed1e79]' },
-  Literature: { bg: 'bg-[#0088e8]/15', text: 'text-[#0088e8]', border: 'border-[#0088e8]' },
+  Literary: { bg: 'bg-[#0088e8]/15', text: 'text-[#0088e8]', border: 'border-[#0088e8]' },
   Stage: { bg: 'bg-[#fdb813]/25', text: 'text-[#946200]', border: 'border-[#fdb813]' },
   Theatre: { bg: 'bg-[#861ec2]/15', text: 'text-[#861ec2]', border: 'border-[#861ec2]' },
   Inauguration: { bg: 'bg-[#00966b]/15', text: 'text-[#00966b]', border: 'border-[#00966b]' },
@@ -215,7 +215,7 @@ export default function SchedulePage() {
               className="w-full appearance-none bg-white text-ink border-2 border-ink rounded-full px-4 py-2 text-xs font-bold focus:outline-none shadow-[1.5px_1.5px_0px_#151515] cursor-pointer"
             >
               <option value="all">All Arenas</option>
-              <option value="Literature">Literature</option>
+              <option value="Literary">Literary</option>
               <option value="Arts">Fine Arts</option>
               <option value="Stage">Stage</option>
               <option value="Theatre">Theatre</option>
@@ -319,7 +319,7 @@ export default function SchedulePage() {
                             className={`shrink-0 rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider border-[1.5px] ${
                               entry.division === 'Inauguration'
                                 ? 'border-[#00966b] bg-[#e8f8f2] text-[#00966b]'
-                                : entry.division === 'Literature'
+                                : entry.division === 'Literary'
                                 ? 'border-[#0088e8] bg-[#eaf5fd] text-[#0088e8]'
                                 : entry.division === 'Arts'
                                 ? 'border-[#ed1e79] bg-[#fdebf3] text-[#ed1e79]'

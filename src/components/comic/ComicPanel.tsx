@@ -22,7 +22,7 @@ export interface ComicPanelConfig {
 
 const PANEL_WORDING: Record<CategoryKey, { title: string; tagline: string; captionHex: string }> = {
   arts: { title: 'ARTS', tagline: 'PAINT. DESIGN. EXPRESS.', captionHex: '#f9d423' },
-  literature: { title: 'LITERATURE', tagline: 'SPEAK. WRITE. THINK.', captionHex: '#f9d423' },
+  literature: { title: 'LITERARY', tagline: 'SPEAK. WRITE. THINK.', captionHex: '#f9d423' },
   stage: { title: 'STAGE', tagline: 'PERFORM. INSPIRE.', captionHex: '#fdfaf0' },
   theatre: { title: 'THEATRE', tagline: 'ACT. IMAGINE. BRING STORIES ALIVE.', captionHex: '#f9d423' },
 }

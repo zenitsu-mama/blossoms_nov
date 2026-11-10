@@ -33,7 +33,7 @@ const PLACE = ['', '1st', '2nd', '3rd']
 
 const TABS = [
   { key: 'arts', label: 'Arts' },
-  { key: 'literature', label: 'Literature' },
+  { key: 'literature', label: 'Literary' },
   { key: 'stage', label: 'Stage' },
   { key: 'theatre', label: 'Theatre' },
 ] as const

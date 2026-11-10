@@ -138,7 +138,7 @@ export const CATEGORIES: EventCategory[] = [
   },
   {
     "id": "cat-literature",
-    "name": "Literature",
+    "name": "Literary",
     "slug": "literature",
     "description": "Quizzes, debates, speaking events and creative writing.",
     "icon_url": null,

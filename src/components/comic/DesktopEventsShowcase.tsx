@@ -43,8 +43,8 @@ const DESKTOP_COMIC_PANELS: ComicPanelConfig[] = [
   {
     id: 'panel-2-literature',
     categoryKey: 'literature',
-    expandedFrameName: 'Literature Expanded',
-    ariaLabel: 'Literature events category panel',
+    expandedFrameName: 'Literary Expanded',
+    ariaLabel: 'Literary events category panel',
     imageSrc: panel2Url,
     accentColor: '#F28A24',
     isExpansionEnabled: true,
@@ -114,8 +114,8 @@ const MOBILE_COMIC_PANELS: ComicPanelConfig[] = [
   {
     id: 'mobile-panel-2-literature',
     categoryKey: 'literature',
-    expandedFrameName: 'Literature Expanded',
-    ariaLabel: 'Literature events category panel',
+    expandedFrameName: 'Literary Expanded',
+    ariaLabel: 'Literary events category panel',
     imageSrc: mobilePanel2Url,
     accentColor: '#F28A24',
     isExpansionEnabled: true,

@@ -118,7 +118,7 @@ export default function AdminSchedulePage() {
           >
             <option value="all">All Divisions</option>
             <option value="Arts">Fine Arts</option>
-            <option value="Literature">Literature</option>
+            <option value="Literary">Literary</option>
             <option value="Stage">Stage</option>
             <option value="Theatre">Theatre</option>
             <option value="Inauguration">Inauguration</option>

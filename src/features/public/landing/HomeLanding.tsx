@@ -69,7 +69,7 @@ function LandingHero({ animateIn, ready, onOpenSchedule }: Omit<HomeLandingProps
         </h1>
         <p className="landing-caption font-comic-sub">Your campus. Your story.</p>
         <p className="landing-hero-lede">
-          The annual cultural festival of CHRIST (Deemed to be University). Arts, literature, stage
+          The annual cultural festival of CHRIST (Deemed to be University). Arts, literary, stage
           and theatre, with an event for every student.
         </p>
         <div className="landing-actions">
@@ -120,7 +120,7 @@ function TrailerAndAbout({ onOpenSchedule, onOpenAnnouncements }: Pick<HomeLandi
             <article className="landing-panel">
               <h3 className="font-comic-display">What is Blossoms?</h3>
               <p>
-                A multi-day festival with events across Arts, Literature, Stage, Theatre and Special categories. From
+                A multi-day festival with events across Arts, Literary, Stage, Theatre and Special categories. From
                 solo performances to team competitions, every student gets a chance to take part and show their
                 talent.
               </p>

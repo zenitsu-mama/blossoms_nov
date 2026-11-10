@@ -9,7 +9,7 @@ export interface MasterScheduleEntry {
   eventName: string
   venue: string
   timings: string
-  division: 'Arts' | 'Literature' | 'Stage' | 'Theatre' | 'Inauguration' | 'Special' | 'Off Day' | 'Holiday'
+  division: 'Arts' | 'Literary' | 'Stage' | 'Theatre' | 'Inauguration' | 'Special' | 'Off Day' | 'Holiday'
   isOffDay?: boolean
   isHoliday?: boolean
   notes?: string
@@ -24,7 +24,7 @@ export const MASTER_SCHEDULE: MasterScheduleEntry[] = [
     eventName: 'Air Crash/Ship-Wreck',
     venue: 'Seminar Hall, Block 2',
     timings: '12:45 PM',
-    division: 'Literature',
+    division: 'Literary',
   },
   {
     id: 'sch-02',
@@ -34,7 +34,7 @@ export const MASTER_SCHEDULE: MasterScheduleEntry[] = [
     eventName: 'Debate',
     venue: 'Assembly Hall, Block 2',
     timings: '12:45 PM & 3:45 PM',
-    division: 'Literature',
+    division: 'Literary',
   },
   {
     id: 'sch-03',
@@ -44,7 +44,7 @@ export const MASTER_SCHEDULE: MasterScheduleEntry[] = [
     eventName: 'Pot Pourri',
     venue: 'Panel Room, Block 2',
     timings: '12:45 PM',
-    division: 'Literature',
+    division: 'Literary',
   },
   {
     id: 'sch-04',
@@ -94,7 +94,7 @@ export const MASTER_SCHEDULE: MasterScheduleEntry[] = [
     eventName: 'Quiz',
     venue: 'Classrooms',
     timings: '12:45 PM',
-    division: 'Literature',
+    division: 'Literary',
   },
   {
     id: 'sch-09',
@@ -134,7 +134,7 @@ export const MASTER_SCHEDULE: MasterScheduleEntry[] = [
     eventName: 'JAM',
     venue: 'Seminar Hall, Block 2',
     timings: '12:45 PM & 3:45 PM',
-    division: 'Literature',
+    division: 'Literary',
   },
   {
     id: 'sch-13',
@@ -174,7 +174,7 @@ export const MASTER_SCHEDULE: MasterScheduleEntry[] = [
     eventName: 'Dumb Charades',
     venue: 'Classrooms',
     timings: 'TBD',
-    division: 'Literature',
+    division: 'Literary',
   },
   {
     id: 'sch-17',
@@ -204,7 +204,7 @@ export const MASTER_SCHEDULE: MasterScheduleEntry[] = [
     eventName: 'Extempore',
     venue: 'Classrooms',
     timings: '12:45 PM & 3:45 PM',
-    division: 'Literature',
+    division: 'Literary',
   },
   {
     id: 'sch-20',
@@ -294,7 +294,7 @@ export const MASTER_SCHEDULE: MasterScheduleEntry[] = [
     eventName: 'Creative Writing',
     venue: 'Classrooms',
     timings: 'TBD',
-    division: 'Literature',
+    division: 'Literary',
   },
   {
     id: 'sch-29',

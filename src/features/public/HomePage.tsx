@@ -175,7 +175,7 @@ export const CATEGORY_DATA: Record<CategoryKey, CategoryConfig> = {
   },
   literature: {
     key: 'literature',
-    cardTitle: 'LITERATURE',
+    cardTitle: 'LITERARY',
     headingTitle: 'LITERARY ARTS',
     subtitle: 'SPEAK. WRITE. THINK.',
     wingTag: 'BLOSSOMS 2026 • LITERARY SOCIETY',
@@ -522,7 +522,7 @@ const PANEL_DETAILS: Record<string, DetailModal> = {
     ],
   },
   literature: {
-    title: 'LITERATURE',
+    title: 'LITERARY',
     subtitle: 'SPEAK. WRITE. THINK.',
     tag: 'Literary Society • 8 Events',
     accent: '#0088e8',

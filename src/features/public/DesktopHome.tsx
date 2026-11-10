@@ -38,7 +38,7 @@ const HOME_PANELS: HomePanel[] = [
   },
   {
     slug: 'literature',
-    title: 'LITERATURE',
+    title: 'LITERARY',
     tagline: 'SPEAK. WRITE. THINK.',
     captionHex: '#f9d423',
     art: literatureUrl,
