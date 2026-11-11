@@ -89,6 +89,8 @@ export async function getAllScheduleSlots(): Promise<EventScheduleSlot[]> {
 
 /** Whether students can sign up right now, and why not. */
 export function registrationState(e: Event, now = new Date()): { open: boolean; label: string } {
+  // Every student attends mandatory events, so there is nothing to sign up for (the database refuses it too).
+  if (e.is_mandatory) return { open: false, label: 'Mandatory for all' }
   if (e.registration_enabled === false) return { open: false, label: 'No registration' }
   if (e.status !== 'published') return { open: false, label: e.status === 'completed' ? 'Completed' : 'Closed' }
   if (e.registration_closed) return { open: false, label: 'Registration closed' }

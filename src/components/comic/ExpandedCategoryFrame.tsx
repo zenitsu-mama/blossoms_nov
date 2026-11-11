@@ -227,7 +227,7 @@ export const ExpandedCategoryFrame: React.FC<ExpandedCategoryFrameProps> = ({
                       }}
                       className="expanded-event-action-btn"
                     >
-                      Details &amp; Register →
+                      {ev.is_mandatory ? 'Mandatory · Details →' : 'Details & Register →'}
                     </button>
                   </div>
                 </motion.article>

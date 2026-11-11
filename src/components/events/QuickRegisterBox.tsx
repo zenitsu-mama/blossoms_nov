@@ -78,6 +78,17 @@ export function QuickRegisterBox({ event }: { event: Event }) {
   const canSolo = event.event_format !== 'team'
   const canTeam = event.event_format !== 'individual'
 
+  if (event.is_mandatory) {
+    return (
+      <div className={box}>
+        <p className="flex items-center gap-1.5 text-sm font-bold text-ink">
+          <Info className="w-4 h-4 text-primary" aria-hidden="true" /> Mandatory for every student
+        </p>
+        <p className="text-xs text-ink/70 mt-1">No registration needed. Just turn up at the time and venue shown; attendance is taken there.</p>
+      </div>
+    )
+  }
+
   if (event.registration_enabled === false) return null
 
   if (!reg.open && !existing) {
