@@ -24,6 +24,8 @@ export default function EventsPage() {
   const eventsByCategory = useMemo(() => {
     const grouped: Record<string, Event[]> = { arts: [], literature: [], stage: [], theatre: [], 'special-events': [] }
     for (const ev of events) {
+      // Mandatory events take no registration, so they stay out of the browse lists (a direct ?event= link still opens them).
+      if (ev.is_mandatory) continue
       const slug = ev.category?.slug || 'special-events'
       ;(grouped[slug] ??= []).push(ev)
     }
