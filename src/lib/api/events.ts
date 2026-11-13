@@ -90,6 +90,8 @@ export interface ScheduleEntry extends MasterScheduleEntry {
   eventId?: string
   slug?: string
   status?: string
+  /** Moved to a later date not fixed yet; listed under its old date as "Postponed". */
+  postponed?: boolean
 }
 
 interface ScheduleRow {
@@ -105,6 +107,7 @@ interface ScheduleRow {
   slot_title: string | null
   venue_name: string | null
   venue_building: string | null
+  slot_status?: string | null
 }
 
 const DIVISIONS: Record<string, MasterScheduleEntry['division']> = {
@@ -129,11 +132,13 @@ function istStart(iso: string): string {
 
 /** Turns session rows into one entry per event per day, in date then time order. */
 export function buildSchedule(rows: ScheduleRow[]): ScheduleEntry[] {
-  const byKey = new Map<string, { row: ScheduleRow; starts: string[]; venues: string[]; first: string }>()
+  const byKey = new Map<string, { row: ScheduleRow; starts: string[]; venues: string[]; first: string; postponed: boolean }>()
   for (const r of rows) {
     if (!r.slot_date) continue
     const key = `${r.event_id}|${r.slot_date}`
-    const g = byKey.get(key) ?? { row: r, starts: [], venues: [], first: r.starts_at ?? `${r.slot_date}T23:59:00+05:30` }
+    const g = byKey.get(key) ?? { row: r, starts: [], venues: [], first: r.starts_at ?? `${r.slot_date}T23:59:00+05:30`, postponed: true }
+    // A day counts as postponed only if every session that day is postponed.
+    if (r.slot_status !== 'rescheduled') g.postponed = false
     if (r.starts_at) {
       const t = istStart(r.starts_at)
       if (!g.starts.includes(t)) g.starts.push(t)
@@ -145,7 +150,7 @@ export function buildSchedule(rows: ScheduleRow[]): ScheduleEntry[] {
   }
   return [...byKey.values()]
     .sort((a, b) => a.row.slot_date!.localeCompare(b.row.slot_date!) || a.first.localeCompare(b.first) || a.row.title.localeCompare(b.row.title))
-    .map(({ row, starts, venues }) => {
+    .map(({ row, starts, venues, postponed }) => {
       const iso = row.slot_date!
       const [y, m, d] = iso.split('-')
       const cat = row.category_name ?? ''
@@ -159,9 +164,10 @@ export function buildSchedule(rows: ScheduleRow[]): ScheduleEntry[] {
         isoDate: iso,
         day: new Date(`${iso}T12:00:00+05:30`).toLocaleDateString('en-IN', { weekday: 'long', timeZone: 'Asia/Kolkata' }),
         eventName: row.title,
-        venue: venues.join(' / ') || 'TBD',
-        timings: starts.join(' & ') || row.slot_title || 'TBD',
+        venue: postponed ? 'TBD' : venues.join(' / ') || 'TBD',
+        timings: postponed ? 'POSTPONED · new date soon' : starts.join(' & ') || row.slot_title || 'TBD',
         division,
+        postponed,
       }
     })
 }

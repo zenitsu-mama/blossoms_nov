@@ -26,6 +26,13 @@ export function formatDateTime(iso: string | null | undefined): string {
   })
 }
 
+export const POSTPONED_LABEL = 'Postponed · new date soon'
+
+/** A session moved to a later date not yet fixed (status 'rescheduled'); its old date is kept but never shown. */
+export function isPostponed(slot: Pick<EventScheduleSlot, 'status'> | undefined): boolean {
+  return slot?.status === 'rescheduled'
+}
+
 /** The calendar date of a slot ('YYYY-MM-DD'), whether or not it has fixed times. */
 export function slotDate(slot: EventScheduleSlot | undefined): string | null {
   if (!slot) return null
@@ -40,6 +47,7 @@ export function slotDate(slot: EventScheduleSlot | undefined): string | null {
  */
 export function slotLabel(slot: EventScheduleSlot | undefined): string {
   if (!slot) return 'Schedule to be announced'
+  if (isPostponed(slot)) return POSTPONED_LABEL
   const day = formatDay(slotDate(slot))
   if (slot.starts_at) return `${day} · ${formatTime(slot.starts_at)}`
   return `${day} · ${slot.slot_title || 'Timing TBA'}`

@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils'
 import { SessionPicker } from '@/components/events/SessionPicker'
 import { registrationState } from '@/lib/api/events'
 import { getStudentRegistrations, cancelRegistration, changeSession, type MyRegistration } from '@/lib/api/registration'
-import { chosenSlot, formatDateTime, formatDay, hasSessions, sessionLabel, slotDate, slotLabel } from '@/lib/eventDisplay'
+import { chosenSlot, formatDateTime, formatDay, hasSessions, isPostponed, sessionLabel, slotDate, slotLabel } from '@/lib/eventDisplay'
 
 type Filter = 'active' | 'cancelled'
 
@@ -35,7 +35,7 @@ function findClashes(registrations: MyRegistration[]): Set<string> {
   const timed = registrations
     .filter((r) => r.registration_status === 'confirmed')
     .map((r) => ({ id: r.id, slot: slotOf(r) }))
-    .filter((x) => x.slot?.starts_at && x.slot?.ends_at && x.slot.status !== 'cancelled')
+    .filter((x) => x.slot?.starts_at && x.slot?.ends_at && x.slot.status !== 'cancelled' && x.slot.status !== 'rescheduled')
     .map((x) => ({ id: x.id, start: new Date(x.slot!.starts_at!).getTime(), end: new Date(x.slot!.ends_at!).getTime() }))
   const clashes = new Set<string>()
   for (let i = 0; i < timed.length; i++) {
@@ -155,7 +155,7 @@ function RegistrationCard({ reg, clash, onCancel, cancelling }: { reg: MyRegistr
         <div>
           <Badge variant="outline">{reg.event?.category?.name ?? 'Event'}</Badge>
           <h2 className="font-display text-2xl text-ink mt-2">{reg.event?.title ?? 'Event'}</h2>
-          <p className="text-sm text-ink/70 mt-1">{multi && !chosen ? formatDay(slotDate(slot)) : slotLabel(slot)}</p>
+          <p className="text-sm text-ink/70 mt-1">{multi && !chosen && !isPostponed(slot) ? formatDay(slotDate(slot)) : slotLabel(slot)}</p>
           {multi && (
             <p className={cn('text-sm font-bold', chosen ? 'text-ink' : 'text-comic-red-deep')}>
               {chosen ? sessionLabel(chosen) : 'Session not chosen yet'}

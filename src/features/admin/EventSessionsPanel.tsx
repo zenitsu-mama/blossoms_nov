@@ -21,6 +21,7 @@ interface Draft {
   start: string
   end: string
   venue: string
+  postponed?: boolean
 }
 
 function toDraft(s: EventScheduleSlot): Draft {
@@ -31,6 +32,7 @@ function toDraft(s: EventScheduleSlot): Draft {
     start: istTime(s.starts_at),
     end: istTime(s.ends_at),
     venue: s.venue?.name ?? '',
+    postponed: s.status === 'rescheduled',
   }
 }
 
@@ -166,6 +168,11 @@ function SessionRow({
   return (
     <div className={`rounded-xl border-2 p-3 ${isNew ? 'border-dashed border-primary bg-primary/5' : 'border-ink bg-paper'}`}>
       {isNew && <p className="text-xs font-bold uppercase tracking-wider text-primary mb-2">New session (not saved yet)</p>}
+      {initial.postponed && (
+        <p className="text-xs font-bold uppercase tracking-wider text-comic-red-deep mb-2">
+          Postponed: shown as “new date soon”. Save a new date or start time to put it back on the schedule.
+        </p>
+      )}
       <div className="grid grid-cols-2 sm:grid-cols-[1.2fr_1fr_1fr_1.6fr] gap-3">
         <label className="flex flex-col gap-1 text-xs font-semibold col-span-2 sm:col-span-1">
           Date
