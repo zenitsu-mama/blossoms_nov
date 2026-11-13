@@ -2,17 +2,21 @@ import { useState, useMemo } from 'react'
 import { DisplayText } from '@/components/comic/ComicPrimitives'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
-import { Search, MapPin, Download, FileText } from 'lucide-react'
-import { MASTER_SCHEDULE } from '@/lib/data/masterSchedule'
+import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { Search, MapPin, Download, FileText, Pencil } from 'lucide-react'
+import { getSchedule } from '@/lib/api/events'
 import { SortTh, useSort } from './AdminUI'
 
 export default function AdminSchedulePage() {
   const [search, setSearch] = useState('')
   const [divisionFilter, setDivisionFilter] = useState('all')
   const [monthFilter, setMonthFilter] = useState<'all' | 'nov' | 'dec'>('all')
+  // Live timetable: edit an event's sessions in its editor and this list follows.
+  const { data: schedule = [], isLoading } = useQuery({ queryKey: ['schedule'], queryFn: getSchedule })
 
   const filteredEntries = useMemo(() => {
-    return MASTER_SCHEDULE.filter((entry) => {
+    return schedule.filter((entry) => {
       if (divisionFilter !== 'all' && entry.division !== divisionFilter) return false
       if (monthFilter === 'nov' && !entry.dateStr.includes('-11-')) return false
       if (monthFilter === 'dec' && !entry.dateStr.includes('-12-')) return false
@@ -29,10 +33,10 @@ export default function AdminSchedulePage() {
       }
       return true
     })
-  }, [search, divisionFilter, monthFilter])
+  }, [schedule, search, divisionFilter, monthFilter])
 
   const { sorted, sort, toggle } = useSort(filteredEntries, {
-    date: (e) => e.dateStr,
+    date: (e) => e.isoDate,
     event: (e) => e.eventName,
     division: (e) => e.division,
     venue: (e) => e.venue,
@@ -46,7 +50,7 @@ export default function AdminSchedulePage() {
         <div>
           <DisplayText as="h1" className="text-4xl">Master Timetable Manager</DisplayText>
           <p className="text-sm text-ink/60 mt-1">
-            Official 34-session festival timetable configured from <code className="font-bold text-ink">FINAL SCHEDULE.pdf</code>
+            Live from each event's sessions. To change a date, time or venue, open the event with <strong>Edit</strong>.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -67,18 +71,18 @@ export default function AdminSchedulePage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-xl border-2 border-ink shadow-[2px_2px_0px_#151515]">
           <p className="text-xs uppercase font-bold text-ink/50 tracking-wider">Scheduled Slots</p>
-          <p className="font-display text-3xl text-ink mt-0.5">{MASTER_SCHEDULE.length}</p>
+          <p className="font-display text-3xl text-ink mt-0.5">{schedule.length}</p>
         </div>
         <div className="bg-white p-4 rounded-xl border-2 border-ink shadow-[2px_2px_0px_#151515]">
           <p className="text-xs uppercase font-bold text-[#793f98] tracking-wider">November Sessions</p>
           <p className="font-display text-3xl text-[#793f98] mt-0.5">
-            {MASTER_SCHEDULE.filter((s) => s.dateStr.includes('-11-')).length}
+            {schedule.filter((s) => s.dateStr.includes('-11-')).length}
           </p>
         </div>
         <div className="bg-white p-4 rounded-xl border-2 border-ink shadow-[2px_2px_0px_#151515]">
           <p className="text-xs uppercase font-bold text-[#3478F6] tracking-wider">December Sessions</p>
           <p className="font-display text-3xl text-[#3478F6] mt-0.5">
-            {MASTER_SCHEDULE.filter((s) => s.dateStr.includes('-12-')).length}
+            {schedule.filter((s) => s.dateStr.includes('-12-')).length}
           </p>
         </div>
         <div className="bg-white p-4 rounded-xl border-2 border-ink shadow-[2px_2px_0px_#151515]">
@@ -137,9 +141,15 @@ export default function AdminSchedulePage() {
                 <SortTh label="Division" sortKey="division" sort={sort} onSort={toggle} className="px-4 py-3 text-left font-display text-xs uppercase tracking-wider text-ink" />
                 <SortTh label="Venue Allocation" sortKey="venue" sort={sort} onSort={toggle} className="px-4 py-3 text-left font-display text-xs uppercase tracking-wider text-ink" />
                 <SortTh label="Timings" sortKey="timings" sort={sort} onSort={toggle} className="px-4 py-3 text-left font-display text-xs uppercase tracking-wider text-ink" />
+                <th className="px-4 py-3"><span className="sr-only">Edit</span></th>
               </tr>
             </thead>
             <tbody>
+              {isLoading && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-6 text-center text-sm text-ink/60">Loading timetable…</td>
+                </tr>
+              )}
               {sorted.map((entry) => (
                 <tr key={entry.id} className="border-b border-ink/10 hover:bg-[#FFF8E8]/50 transition-colors">
                   <td className="px-4 py-3 whitespace-nowrap">
@@ -148,6 +158,7 @@ export default function AdminSchedulePage() {
                   </td>
                   <td className="px-4 py-3">
                     <p className="font-display text-base text-ink">{entry.eventName}</p>
+                    {entry.status === 'draft' && <p className="text-[11px] font-semibold text-ink/50 uppercase">Draft · hidden on Events page</p>}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <Badge variant="outline">{entry.division}</Badge>
@@ -160,6 +171,13 @@ export default function AdminSchedulePage() {
                   </td>
                   <td className="px-4 py-3 text-xs text-ink/70">
                     {entry.timings}
+                  </td>
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
+                    {entry.eventId && (
+                      <Link to={`/admin/events/${entry.eventId}`} className="inline-flex items-center gap-1 text-xs font-display uppercase tracking-wider text-primary hover:underline">
+                        <Pencil className="w-3.5 h-3.5" aria-hidden="true" /> Edit
+                      </Link>
+                    )}
                   </td>
                 </tr>
               ))}

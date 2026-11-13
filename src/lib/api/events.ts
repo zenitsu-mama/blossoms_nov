@@ -1,6 +1,7 @@
 import { supabase, isSupabaseConfigured } from '@/lib/supabase/client'
 import type { Event, EventCategory, EventScheduleSlot } from '@/types'
 import { CATEGORIES, EVENTS } from '@/lib/data/eventsData'
+import { MASTER_SCHEDULE, type MasterScheduleEntry } from '@/lib/data/masterSchedule'
 
 // Offline copy of the same events (same ids) for when the database is unreachable.
 export const MOCK_CATEGORIES: EventCategory[] = CATEGORIES
@@ -76,10 +77,103 @@ export async function getEventBySlug(slugOrId: string): Promise<Event | null> {
   if (isSupabaseConfigured) {
     const column = UUID_RE.test(slugOrId) ? 'id' : 'slug'
     const { data, error } = await supabase.from('events').select(EVENT_SELECT).eq(column, slugOrId).maybeSingle()
-    if (!error && data) return normalise([data as Event])[0]
-    if (error) console.warn('Event: using offline copy', error.message)
+    // Not found (or a draft the public can't see) means no event, not the built-in copy with old details.
+    if (!error) return data ? normalise([data as Event])[0] : null
+    console.warn('Event: using offline copy', error.message)
   }
   return MOCK_EVENTS.find((e) => e.slug === slugOrId || e.id === slugOrId) ?? null
+}
+
+// ── Timetable ─────────────────────────────────────────────────────────────────
+/** One schedule row: an event on one day, with all its start times that day. */
+export interface ScheduleEntry extends MasterScheduleEntry {
+  eventId?: string
+  slug?: string
+  status?: string
+}
+
+interface ScheduleRow {
+  event_id: string
+  title: string
+  slug: string
+  status: string
+  category_name: string | null
+  category_slug: string | null
+  slot_id: string
+  slot_date: string | null
+  starts_at: string | null
+  slot_title: string | null
+  venue_name: string | null
+  venue_building: string | null
+}
+
+const DIVISIONS: Record<string, MasterScheduleEntry['division']> = {
+  Literary: 'Literary',
+  Arts: 'Arts',
+  Stage: 'Stage',
+  Theatre: 'Theatre',
+}
+
+/** "Seminar Hall, Block 2"; campus-wide places ("Garden Street") need no building. */
+function venueLabel(name: string | null, building: string | null): string {
+  if (!name) return ''
+  if (!building || building === 'Central Campus' || name.includes(building)) return name
+  return `${name}, ${building}`
+}
+
+function istStart(iso: string): string {
+  return new Date(iso)
+    .toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })
+    .toUpperCase()
+}
+
+/** Turns session rows into one entry per event per day, in date then time order. */
+export function buildSchedule(rows: ScheduleRow[]): ScheduleEntry[] {
+  const byKey = new Map<string, { row: ScheduleRow; starts: string[]; venues: string[]; first: string }>()
+  for (const r of rows) {
+    if (!r.slot_date) continue
+    const key = `${r.event_id}|${r.slot_date}`
+    const g = byKey.get(key) ?? { row: r, starts: [], venues: [], first: r.starts_at ?? `${r.slot_date}T23:59:00+05:30` }
+    if (r.starts_at) {
+      const t = istStart(r.starts_at)
+      if (!g.starts.includes(t)) g.starts.push(t)
+      if (r.starts_at < g.first) g.first = r.starts_at
+    }
+    const v = venueLabel(r.venue_name, r.venue_building)
+    if (v && !g.venues.includes(v)) g.venues.push(v)
+    byKey.set(key, g)
+  }
+  return [...byKey.values()]
+    .sort((a, b) => a.row.slot_date!.localeCompare(b.row.slot_date!) || a.first.localeCompare(b.first) || a.row.title.localeCompare(b.row.title))
+    .map(({ row, starts, venues }) => {
+      const iso = row.slot_date!
+      const [y, m, d] = iso.split('-')
+      const cat = row.category_name ?? ''
+      const division = DIVISIONS[cat] ?? (/inaugurat/i.test(row.title) ? 'Inauguration' : 'Special')
+      return {
+        id: `${row.event_id}-${iso}`,
+        eventId: row.event_id,
+        slug: row.slug,
+        status: row.status,
+        dateStr: `${d}-${m}-${y}`,
+        isoDate: iso,
+        day: new Date(`${iso}T12:00:00+05:30`).toLocaleDateString('en-IN', { weekday: 'long', timeZone: 'Asia/Kolkata' }),
+        eventName: row.title,
+        venue: venues.join(' / ') || 'TBD',
+        timings: starts.join(' & ') || row.slot_title || 'TBD',
+        division,
+      }
+    })
+}
+
+/** The live timetable (drafts included, cancelled events left out); the built-in copy only if the database is unreachable. */
+export async function getSchedule(): Promise<ScheduleEntry[]> {
+  if (isSupabaseConfigured) {
+    const { data, error } = await supabase.rpc('public_schedule')
+    if (!error && data) return buildSchedule(data as ScheduleRow[])
+    if (error) console.warn('Schedule: using offline copy', error.message)
+  }
+  return MASTER_SCHEDULE
 }
 
 export async function getAllScheduleSlots(): Promise<EventScheduleSlot[]> {

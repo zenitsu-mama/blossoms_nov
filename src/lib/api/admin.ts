@@ -67,6 +67,24 @@ export interface RosterRow {
 
 export const getEventRoster = (eventId: string) => rpc<RosterRow[]>('admin_event_roster', { p_event_id: eventId })
 
+export interface SpotEntry {
+  register_number: string
+  /** Only needed when the student has no phone number on file; saved to their profile. */
+  phone?: string
+}
+
+/**
+ * On-spot registration at the venue: registers the students (as one team when a team name is given) and marks
+ * them present. Skips the deadline, seat limit, clashes and team size; needs a phone number for everyone.
+ */
+export const spotRegister = (eventId: string, entries: SpotEntry[], teamName?: string | null, slotId?: string | null) =>
+  rpc<{ success: boolean; message: string; error_code?: string; count?: number }>('admin_spot_register', {
+    p_event_id: eventId,
+    p_entries: entries,
+    p_team_name: teamName || null,
+    p_slot_id: slotId || null,
+  })
+
 export const markAttendance = (eventId: string, studentIds: string[], status: 'present' | 'absent' | 'clear') =>
   rpc<{ success: boolean; updated: number }>('admin_mark_attendance', {
     p_event_id: eventId,
@@ -197,11 +215,44 @@ export type EventPatch = Partial<
 >
 
 export async function updateEvent(id: string, patch: EventPatch): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('events')
     .update({ ...patch, updated_at: new Date().toISOString() })
     .eq('id', id)
+    .select('id')
   if (error) throw new Error(error.message)
+  // The database skips rows the admin may not edit without raising an error, so check something was saved.
+  if (!data || data.length === 0) throw new Error('Not saved: you do not have permission to edit this event.')
+}
+
+// ── Sessions (date, time, venue) ─────────────────────────────────────────────
+export interface SlotInput {
+  slotId: string | null // null adds a new session
+  date: string // 'YYYY-MM-DD'
+  start: string | null // 'HH:MM' in IST, or null for timing TBA
+  end: string | null
+  venue: string | null // venue name; a new name is added to the venue list
+  notify: boolean // tell registered students if the date, start or venue changed
+}
+type SlotResult = { success: boolean; message: string; error_code?: string; slot_id?: string; notified?: number }
+
+export const saveEventSlot = (eventId: string, s: SlotInput) =>
+  rpc<SlotResult>('admin_save_event_slot', {
+    p_event_id: eventId,
+    p_slot_id: s.slotId,
+    p_date: s.date,
+    p_start: s.start || null,
+    p_end: s.end || null,
+    p_venue: s.venue?.trim() || null,
+    p_notify: s.notify,
+  })
+
+export const deleteEventSlot = (slotId: string) => rpc<SlotResult>('admin_delete_event_slot', { p_slot_id: slotId })
+
+export async function getVenueNames(): Promise<string[]> {
+  const { data, error } = await supabase.from('venues').select('name').order('name')
+  if (error) throw new Error(error.message)
+  return (data ?? []).map((v) => v.name as string)
 }
 
 // ── Winners ───────────────────────────────────────────────────────────────────

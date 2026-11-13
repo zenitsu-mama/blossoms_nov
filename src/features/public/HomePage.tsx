@@ -4,6 +4,8 @@ import HomeLanding from '@/features/public/landing/HomeLanding';
 import { Footer } from '@/components/layout/Footer';
 import { PublicHeader } from '@/components/layout/PublicHeader';
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { getSchedule } from '@/lib/api/events';
 
 export type CategoryKey = 'arts' | 'literature' | 'stage' | 'theatre' | 'special';
 
@@ -644,6 +646,19 @@ export default function HomePage() {
   const [playedOpening] = useState(shouldPlayOpening);
   const [openingDone, setOpeningDone] = useState(false);
   const [selectedModal, setSelectedModal] = useState<DetailModal | null>(null);
+  // The schedule popup reads the live timetable, so date, time and venue edits in the admin show here too.
+  const { data: schedule = [] } = useQuery({ queryKey: ['schedule'], queryFn: getSchedule });
+  const modal: DetailModal | null =
+    selectedModal === PANEL_DETAILS.schedule && schedule.length > 0
+      ? {
+          ...selectedModal,
+          items: schedule.map((e) => ({
+            name: e.eventName,
+            time: e.dateStr.replace(/-/g, '.') + (e.timings && e.timings !== 'TBD' ? ` · ${e.timings}` : ''),
+            venue: e.venue,
+          })),
+        }
+      : selectedModal;
 
   return (
     <div className="min-h-screen w-full bg-[#793f98] text-[#0f0f0f] relative selection:bg-black selection:text-white">
@@ -661,7 +676,7 @@ export default function HomePage() {
       {/* =========================================================================
           UNIVERSAL INTERACTIVE COMIC MODAL (Desktop & Mobile, Zero Shadows)
          ========================================================================= */}
-      {selectedModal && (
+      {modal && (
         <div
           className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs animate-fadeIn"
           onClick={() => {
@@ -677,15 +692,15 @@ export default function HomePage() {
               <div>
                 <div
                   className="inline-block px-2.5 py-0.5 border-[2px] border-[#0f0f0f] font-comic-sub text-[11px] font-bold text-white mb-1"
-                  style={{ backgroundColor: selectedModal.accent }}
+                  style={{ backgroundColor: modal.accent }}
                 >
-                  {selectedModal.tag}
+                  {modal.tag}
                 </div>
                 <h3 className="font-comic-display text-[34px] leading-tight text-[#0f0f0f]">
-                  {selectedModal.title}
+                  {modal.title}
                 </h3>
                 <p className="font-comic-sub text-[13px] text-neutral-700 font-bold">
-                  {selectedModal.subtitle}
+                  {modal.subtitle}
                 </p>
               </div>
               <button
@@ -701,7 +716,7 @@ export default function HomePage() {
 
             {/* Modal Items List */}
             <div className="mt-3.5 flex-1 overflow-y-auto space-y-2 pr-1">
-              {selectedModal.items.map((item, idx) => (
+              {modal.items.map((item, idx) => (
                 <div
                   key={idx}
                   className="bg-white border-[2.2px] border-[#0f0f0f] p-2.5 flex items-center justify-between rounded-lg"

@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom'
 import { Compass, ArrowRight, Clock, MapPin, Bell, CheckCircle2, Phone, Target } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { DisplayText, ComicPanel, ComicCaptionBox } from '@/components/comic/ComicPrimitives'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { getStudentRegistrations } from '@/lib/api/registration'
-import { getMyNotifications } from '@/lib/api/notifications'
+import { getMyNotifications, markNotification } from '@/lib/api/notifications'
 import { useAuth } from '@/lib/auth/authStore'
 import { formatDateTime, slotLabel } from '@/lib/eventDisplay'
 import { eventSortKey } from '@/lib/api/events'
@@ -17,6 +17,7 @@ const DEFAULT_MIN_EVENTS = 2
 
 export default function StudentDashboard() {
   const { student } = useAuth()
+  const queryClient = useQueryClient()
   const { data: registrations = [], isLoading } = useQuery({
     queryKey: ['my-registrations'],
     queryFn: getStudentRegistrations,
@@ -115,13 +116,33 @@ export default function StudentDashboard() {
           <p className="text-sm text-ink/60">No updates yet. Team invites, results and notices from organisers show up here.</p>
         ) : (
           <ul className="space-y-2">
-            {notifications.slice(0, 5).map((n) => (
-              <li key={n.id} className="comic-card p-4 bg-white">
-                <p className={n.read_at ? 'text-sm text-ink' : 'text-sm font-bold text-ink'}>{n.title}</p>
-                <p className="text-xs text-ink/70 mt-0.5">{n.body}</p>
-                <p className="text-[11px] text-ink/40 mt-1">{formatDateTime(n.created_at)}</p>
-              </li>
-            ))}
+            {notifications.slice(0, 5).map((n) => {
+              const content = (
+                <>
+                  <p className={n.read_at ? 'text-sm text-ink' : 'text-sm font-bold text-ink'}>{n.title}</p>
+                  <p className="text-xs text-ink/70 mt-0.5">{n.body}</p>
+                  <p className="text-[11px] text-ink/40 mt-1">{formatDateTime(n.created_at)}</p>
+                </>
+              )
+              return (
+                <li key={n.id} className="comic-card bg-white">
+                  {n.link ? (
+                    // Same as the bell: opening an update marks it read and goes to its page (e.g. My events).
+                    <Link
+                      to={n.link}
+                      onClick={() => {
+                        if (!n.read_at) void markNotification(n.id, 'read').then(() => queryClient.invalidateQueries({ queryKey: ['notifications'] }), () => undefined)
+                      }}
+                      className="block p-4 hover:bg-paper rounded-[inherit]"
+                    >
+                      {content}
+                    </Link>
+                  ) : (
+                    <div className="p-4">{content}</div>
+                  )}
+                </li>
+              )
+            })}
           </ul>
         )}
       </section>

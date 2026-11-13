@@ -3,20 +3,24 @@ import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { Check, X, RotateCcw } from 'lucide-react'
+import { Check, X, RotateCcw, UserPlus, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
-import { getEventRoster, markAttendance, type RosterRow } from '@/lib/api/admin'
+import { getEventRoster, markAttendance, spotRegister, type RosterRow, type SpotEntry } from '@/lib/api/admin'
 import { formatTime } from '@/lib/eventDisplay'
 import { cn } from '@/lib/utils'
-import { DataTable, EventSelect, Muted, PageHeader, Panel, SearchBox, SortTh, useSort } from './AdminUI'
+import type { Event } from '@/types'
+import { DataTable, EventSelect, Muted, PageHeader, Panel, SearchBox, SortTh, selectClass, useAdminEvents, useSort } from './AdminUI'
 
 export default function AdminAttendance() {
   const [params, setParams] = useSearchParams()
   const eventId = params.get('event') ?? ''
   const [search, setSearch] = useState('')
   const queryClient = useQueryClient()
+  const { data: adminEvents = [] } = useAdminEvents()
+  const selectedEvent = adminEvents.find((e) => e.id === eventId)
 
   const { data: roster = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ['admin-roster', eventId],
@@ -106,6 +110,17 @@ export default function AdminAttendance() {
           </div>
         )}
       </div>
+
+      {eventId && selectedEvent && !selectedEvent.is_mandatory && (
+        <SpotRegisterPanel
+          key={eventId}
+          event={selectedEvent}
+          onDone={() => {
+            queryClient.invalidateQueries({ queryKey: ['admin-roster', eventId] })
+            queryClient.invalidateQueries({ queryKey: ['admin-stats'] })
+          }}
+        />
+      )}
 
       {!eventId ? (
         <Muted>Choose an event to take attendance.</Muted>
@@ -230,5 +245,129 @@ function AttendanceRow({
         </div>
       </td>
     </tr>
+  )
+}
+
+const EMPTY_ROW: SpotEntry = { register_number: '', phone: '' }
+
+/**
+ * On-spot registration for students who turn up without registering online. Registers them (as one team when a
+ * team name is given) and marks them present. Deadline, seat limit, clashes and team size don't apply, but every
+ * student needs a phone number on file: enter one for anyone who hasn't added theirs.
+ */
+function SpotRegisterPanel({ event, onDone }: { event: Event; onDone: () => void }) {
+  const [open, setOpen] = useState(false)
+  const [rows, setRows] = useState<SpotEntry[]>([{ ...EMPTY_ROW }])
+  const [teamName, setTeamName] = useState('')
+  const slots = event.schedule_slots ?? []
+  const [slotId, setSlotId] = useState(slots.length === 1 ? slots[0].id : '')
+  const teamEvent = event.event_format !== 'individual'
+
+  const save = useMutation({
+    mutationFn: () =>
+      spotRegister(
+        event.id,
+        rows
+          .filter((r) => r.register_number.trim())
+          .map((r) => ({ register_number: r.register_number.trim(), ...(r.phone?.trim() ? { phone: r.phone.trim() } : {}) })),
+        teamEvent ? teamName.trim() || null : null,
+        slotId || null
+      ),
+    onSuccess: (res) => {
+      if (!res.success) return toast.error(res.message, { duration: 6000 })
+      toast.success(res.message)
+      setRows([{ ...EMPTY_ROW }])
+      setTeamName('')
+      onDone()
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+
+  const setRow = (i: number, patch: Partial<SpotEntry>) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)))
+
+  if (!open) {
+    return (
+      <Button variant="outline" onClick={() => setOpen(true)}>
+        <UserPlus className="w-4 h-4" /> On-spot registration
+      </Button>
+    )
+  }
+
+  return (
+    <Panel title="On-spot registration">
+      <p className="text-sm text-ink/60 -mt-2 mb-4">
+        For students who turned up without registering. They are registered and marked present. The deadline, seat limit, time
+        clashes and team size don't apply. Add a phone number for anyone who hasn't added one to their profile.
+      </p>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (!rows.some((r) => r.register_number.trim())) return toast.error('Add at least one register number.')
+          if (slots.length > 1 && !slotId) return toast.error('Pick the session.')
+          save.mutate()
+        }}
+        className="space-y-3"
+      >
+        {teamEvent && (
+          <Input
+            label={event.event_format === 'team' ? 'Team name' : 'Team name (leave empty for solo entries)'}
+            value={teamName}
+            onChange={(e) => setTeamName(e.target.value)}
+            maxLength={60}
+          />
+        )}
+        {slots.length > 1 && (
+          <label className="flex flex-col gap-1 text-sm font-semibold">
+            Session
+            <select value={slotId} onChange={(e) => setSlotId(e.target.value)} className={selectClass}>
+              <option value="">Choose the session…</option>
+              {slots.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.starts_at ? `${formatTime(s.starts_at).toUpperCase()} session` : s.slot_title ?? 'Session'}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        {rows.map((r, i) => (
+          <div key={i} className="flex flex-wrap items-end gap-2">
+            <div className="w-40">
+              <Input
+                label={i === 0 && teamName.trim() ? 'Register no. (leader)' : 'Register no.'}
+                value={r.register_number}
+                inputMode="numeric"
+                onChange={(e) => setRow(i, { register_number: e.target.value })}
+              />
+            </div>
+            <div className="w-48">
+              <Input label="Phone (if not on file)" value={r.phone ?? ''} inputMode="tel" onChange={(e) => setRow(i, { phone: e.target.value })} />
+            </div>
+            {rows.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))}
+                aria-label="Remove this student"
+                className="mb-2 p-1.5 text-ink/50 hover:text-comic-red-deep"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        ))}
+
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" size="sm" variant="outline" onClick={() => setRows((rs) => [...rs, { ...EMPTY_ROW }])}>
+            <Plus className="w-4 h-4" /> Add another student
+          </Button>
+          <Button type="submit" size="sm" isLoading={save.isPending}>
+            <UserPlus className="w-4 h-4" /> Register and mark present
+          </Button>
+          <Button type="button" size="sm" variant="outline" onClick={() => setOpen(false)}>
+            Close
+          </Button>
+        </div>
+      </form>
+    </Panel>
   )
 }

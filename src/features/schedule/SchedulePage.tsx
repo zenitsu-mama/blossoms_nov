@@ -10,9 +10,8 @@ import {
   Filter,
   ChevronRight,
 } from 'lucide-react'
-import { MASTER_SCHEDULE } from '@/lib/data/masterSchedule'
 import { EventSheet } from '@/components/events/EventSheet'
-import { getEvents } from '@/lib/api/events'
+import { getEvents, getSchedule } from '@/lib/api/events'
 import { primarySlot, slotDate } from '@/lib/eventDisplay'
 import type { Event } from '@/types'
 
@@ -34,12 +33,14 @@ const normaliseTitle = (title: string) => title.toLowerCase().replace(/[^a-z0-9]
  * The button that opens the shared event popup for one schedule row. Rows are matched to events by title,
  * so two events on the same day each get only their own button.
  */
-function EventButtons({ name, isoDate, events, onOpen }: { name: string; isoDate: string; events: Event[]; onOpen: (e: Event) => void }) {
+function EventButtons({ eventId, name, isoDate, events, onOpen }: { eventId?: string; name: string; isoDate: string; events: Event[]; onOpen: (e: Event) => void }) {
+  // Live schedule rows carry the event id; the offline copy is matched by title.
+  const byId = eventId ? events.filter((e) => e.id === eventId) : []
   const wanted = normaliseTitle(name)
   const byTitle = events.filter((e) => normaliseTitle(e.title) === wanted)
   // Prefer the event on this row's date if two share a title; fall back to the title match alone.
   const onDay = byTitle.filter((e) => slotDate(primarySlot(e)) === isoDate)
-  const today = onDay.length > 0 ? onDay : byTitle
+  const today = eventId ? byId : onDay.length > 0 ? onDay : byTitle
   if (today.length === 0) return null
   return (
     <div className="flex flex-wrap gap-1.5 mt-2.5">
@@ -59,6 +60,8 @@ function EventButtons({ name, isoDate, events, onOpen }: { name: string; isoDate
 
 export default function SchedulePage() {
   const { data: events = [] } = useQuery({ queryKey: ['events', 'all'], queryFn: () => getEvents() })
+  // The live timetable: date, time and venue edits in the admin event editor show here.
+  const { data: schedule = [] } = useQuery({ queryKey: ['schedule'], queryFn: getSchedule })
   const [openEvent, setOpenEvent] = useState<Event | null>(null)
   const [monthFilter, setMonthFilter] = useState<MonthFilter>('all')
   const [divisionFilter, setDivisionFilter] = useState<string>('all')
@@ -71,7 +74,7 @@ export default function SchedulePage() {
   const uniqueDates = useMemo(() => {
     const list: Array<{ dateStr: string; dayNum: string; monthName: string; dayShort: string }> = []
     const seen = new Set<string>()
-    for (const item of MASTER_SCHEDULE) {
+    for (const item of schedule) {
       if (!seen.has(item.dateStr)) {
         seen.add(item.dateStr)
         const [d, m] = item.dateStr.split('-')
@@ -84,10 +87,10 @@ export default function SchedulePage() {
       }
     }
     return list
-  }, [])
+  }, [schedule])
 
   const filteredEntries = useMemo(() => {
-    return MASTER_SCHEDULE.filter((entry) => {
+    return schedule.filter((entry) => {
       // 1. Month filter
       if (monthFilter === 'nov' && !entry.dateStr.includes('-11-')) return false
       if (monthFilter === 'dec' && !entry.dateStr.includes('-12-')) return false
@@ -109,7 +112,7 @@ export default function SchedulePage() {
 
       return true
     })
-  }, [monthFilter, divisionFilter, search])
+  }, [schedule, monthFilter, divisionFilter, search])
 
   function handleScrollRight() {
     if (scrollerRef.current) {
@@ -350,7 +353,7 @@ export default function SchedulePage() {
                           )}
                         </div>
 
-                        <EventButtons name={entry.eventName} isoDate={entry.isoDate} events={events} onOpen={setOpenEvent} />
+                        <EventButtons eventId={entry.eventId} name={entry.eventName} isoDate={entry.isoDate} events={events} onOpen={setOpenEvent} />
                       </>
                     )}
                   </div>
@@ -515,7 +518,7 @@ export default function SchedulePage() {
                         )}
                       </div>
 
-                      {!isNonEvent && <EventButtons name={entry.eventName} isoDate={entry.isoDate} events={events} onOpen={setOpenEvent} />}
+                      {!isNonEvent && <EventButtons eventId={entry.eventId} name={entry.eventName} isoDate={entry.isoDate} events={events} onOpen={setOpenEvent} />}
                     </div>
                   </div>
                 )
@@ -548,7 +551,7 @@ export default function SchedulePage() {
                         </td>
                         <td className="py-3 px-4 font-display text-sm text-ink font-normal tracking-[0.05em] [word-spacing:0.1em]">
                           {entry.eventName}
-                          {!(entry.isOffDay || entry.isHoliday) && <EventButtons name={entry.eventName} isoDate={entry.isoDate} events={events} onOpen={setOpenEvent} />}
+                          {!(entry.isOffDay || entry.isHoliday) && <EventButtons eventId={entry.eventId} name={entry.eventName} isoDate={entry.isoDate} events={events} onOpen={setOpenEvent} />}
                         </td>
                         <td className="py-3 px-4">
                           <span className="font-bold">{entry.division}</span>

@@ -20,7 +20,8 @@ export function TeamRegistrationModal({
   /** Session already picked in the register box, for events held more than once. */
   slotId?: string | null
   onClose: () => void
-  onSuccess: () => void
+  /** Called with the event's WhatsApp group link (if any) once the team is registered. */
+  onSuccess: (whatsappUrl?: string | null) => void
 }) {
   const session = slotId ? event.schedule_slots?.find((s) => s.id === slotId) : undefined
   const auth = useAuth()
@@ -87,7 +88,7 @@ export function TeamRegistrationModal({
     setSubmitting(false)
     if (res.success) {
       toast.success(res.message)
-      onSuccess()
+      onSuccess(res.whatsapp_group_url)
     } else {
       setError(res.message)
     }

@@ -6,6 +6,7 @@ import { CheckCircle2, Info, LogIn, MessageCircle, Users } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { SessionPicker } from '@/components/events/SessionPicker'
 import { TeamRegistrationModal } from '@/components/events/TeamRegistrationModal'
+import { WhatsAppJoinDialog } from '@/components/events/WhatsAppJoinDialog'
 import { useAuth } from '@/lib/auth/authStore'
 import { registrationState } from '@/lib/api/events'
 import { changeSession, getStudentRegistrations, registerIndividualEvent } from '@/lib/api/registration'
@@ -13,7 +14,18 @@ import { chosenSlot, hasSessions, sessionLabel } from '@/lib/eventDisplay'
 import type { Event } from '@/types'
 
 /** Register box inside the event popup: sign-in prompt, solo register, team builder, or "you're in". */
+/** Register box for the event popup. Right after a sign-up it asks the student to join the event's WhatsApp group. */
 export function QuickRegisterBox({ event }: { event: Event }) {
+  const [joinUrl, setJoinUrl] = useState<string | null>(null)
+  return (
+    <>
+      <RegisterBoxInner event={event} onRegistered={(url) => url && setJoinUrl(url)} />
+      {joinUrl && <WhatsAppJoinDialog eventTitle={event.title} url={joinUrl} onClose={() => setJoinUrl(null)} />}
+    </>
+  )
+}
+
+function RegisterBoxInner({ event, onRegistered }: { event: Event; onRegistered: (whatsappUrl?: string | null) => void }) {
   const auth = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -39,6 +51,9 @@ export function QuickRegisterBox({ event }: { event: Event }) {
       if (res.success) {
         toast.success(res.message)
         queryClient.invalidateQueries({ queryKey: ['my-registrations'] })
+        queryClient.invalidateQueries({ queryKey: ['notifications'] })
+        // Waitlisted entries aren't in yet, so only confirmed ones get the WhatsApp prompt.
+        if (res.status === 'confirmed') onRegistered(res.whatsapp_group_url)
       } else if (res.error_code === 'PROFILE_INCOMPLETE') {
         toast.error(res.message)
         goToProfile()
@@ -205,9 +220,11 @@ export function QuickRegisterBox({ event }: { event: Event }) {
           event={event}
           slotId={slotId}
           onClose={() => setTeamOpen(false)}
-          onSuccess={() => {
+          onSuccess={(whatsappUrl) => {
             setTeamOpen(false)
             queryClient.invalidateQueries({ queryKey: ['my-registrations'] })
+            queryClient.invalidateQueries({ queryKey: ['notifications'] })
+            onRegistered(whatsappUrl)
           }}
         />
       )}

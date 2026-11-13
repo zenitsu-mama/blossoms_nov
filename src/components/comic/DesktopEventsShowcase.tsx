@@ -277,9 +277,10 @@ export default function DesktopEventsShowcase({
   const activeCategoryEvents = useMemo(() => {
     if (!activeExpandedPanel) return []
     const key = activeExpandedPanel.categoryKey
-    const fromProps = eventsByCategory?.[key]
-    if (fromProps && fromProps.length > 0) {
-      return fromProps
+    // Live events from the page whenever it passes them (even an empty list), so edits made in the admin show.
+    // The built-in copy is only for a page that passes nothing.
+    if (eventsByCategory) {
+      return eventsByCategory[key] ?? []
     }
     return EVENTS.filter((ev) => ev.category?.slug === key).sort((a, b) => {
       const orderA = eventOrderIndex(a)

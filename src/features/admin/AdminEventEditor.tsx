@@ -10,6 +10,7 @@ import { updateEvent, type EventPatch } from '@/lib/api/admin'
 import { slotLabel } from '@/lib/eventDisplay'
 import type { EventStatus } from '@/types'
 import { PageHeader, Panel, selectClass, useAdminEvents } from './AdminUI'
+import { EventSessionsPanel } from './EventSessionsPanel'
 
 /** datetime-local value in IST for an ISO timestamp */
 function toLocalInput(iso: string | null | undefined): string {
@@ -82,13 +83,7 @@ export default function AdminEventEditor() {
         title={event.title}
         description={[event.category?.name, slotLabel(event.schedule_slots?.[0]), event.schedule_slots?.[0]?.venue?.name].filter(Boolean).join(' · ')}
       />
-      <p className="text-sm text-ink/70 -mt-3">
-        Date, time and venue are set on the{' '}
-        <Link to="/admin/schedule" className="font-semibold text-primary hover:underline">
-          Schedule
-        </Link>{' '}
-        page.
-      </p>
+      <EventSessionsPanel event={event} />
 
       <form
         onSubmit={(e) => {
