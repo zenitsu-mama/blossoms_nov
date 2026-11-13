@@ -63,7 +63,7 @@ export default function MyEventsPage() {
     onSuccess: (res) => {
       if (res.success) {
         toast.success(res.message)
-        queryClient.invalidateQueries({ queryKey: ['my-registrations'] })
+        queryClient.invalidateQueries()
       } else {
         toast.error(res.message)
       }
@@ -142,7 +142,7 @@ function RegistrationCard({ reg, clash, onCancel, cancelling }: { reg: MyRegistr
     onSuccess: (res) => {
       if (res.success) {
         toast.success(res.message)
-        queryClient.invalidateQueries({ queryKey: ['my-registrations'] })
+        queryClient.invalidateQueries()
       } else {
         toast.error(res.message)
       }

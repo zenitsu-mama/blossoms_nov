@@ -50,8 +50,7 @@ function RegisterBoxInner({ event, onRegistered }: { event: Event; onRegistered:
     onSuccess: (res) => {
       if (res.success) {
         toast.success(res.message)
-        queryClient.invalidateQueries({ queryKey: ['my-registrations'] })
-        queryClient.invalidateQueries({ queryKey: ['notifications'] })
+        queryClient.invalidateQueries()
         // Waitlisted entries aren't in yet, so only confirmed ones get the WhatsApp prompt.
         if (res.status === 'confirmed') onRegistered(res.whatsapp_group_url)
       } else if (res.error_code === 'PROFILE_INCOMPLETE') {
@@ -68,7 +67,7 @@ function RegisterBoxInner({ event, onRegistered }: { event: Event; onRegistered:
     onSuccess: (res) => {
       if (res.success) {
         toast.success(res.message)
-        queryClient.invalidateQueries({ queryKey: ['my-registrations'] })
+        queryClient.invalidateQueries()
       } else {
         toast.error(res.message)
       }
@@ -222,8 +221,7 @@ function RegisterBoxInner({ event, onRegistered }: { event: Event; onRegistered:
           onClose={() => setTeamOpen(false)}
           onSuccess={(whatsappUrl) => {
             setTeamOpen(false)
-            queryClient.invalidateQueries({ queryKey: ['my-registrations'] })
-            queryClient.invalidateQueries({ queryKey: ['notifications'] })
+            queryClient.invalidateQueries()
             onRegistered(whatsappUrl)
           }}
         />

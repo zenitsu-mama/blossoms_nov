@@ -224,7 +224,7 @@ function NotificationsPanel() {
                   notification={n}
                   audience={audience}
                   onDone={() => setEditingId(null)}
-                  onSaved={() => queryClient.invalidateQueries({ queryKey: ['admin-notifications'] })}
+                  onSaved={() => queryClient.invalidateQueries()}
                 />
               </li>
             ) : (

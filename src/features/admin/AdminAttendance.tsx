@@ -116,8 +116,8 @@ export default function AdminAttendance() {
           key={eventId}
           event={selectedEvent}
           onDone={() => {
-            queryClient.invalidateQueries({ queryKey: ['admin-roster', eventId] })
-            queryClient.invalidateQueries({ queryKey: ['admin-stats'] })
+            // On-spot sign-ups change rosters, registrations, defaulters and points: refresh everything loaded.
+            void queryClient.invalidateQueries()
           }}
         />
       )}

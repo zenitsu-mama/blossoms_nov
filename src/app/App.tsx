@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Suspense, lazy, useEffect } from 'react'
 import { Toaster } from 'react-hot-toast'
 import { ConfirmHost } from '@/components/ui/ConfirmDialog'
@@ -48,10 +48,18 @@ const AdminWinners        = lazy(() => import('@/features/admin/AdminWinners'))
 const AdminAudit          = lazy(() => import('@/features/admin/AdminAudit'))
 const AdminPointsTeams    = lazy(() => import('@/features/admin/AdminPointsTeams'))
 
-const queryClient = new QueryClient({
+// After any save succeeds (attendance, event edits, winners, …) every loaded list is refetched, so other pages
+// never show data from before the save. Lists on screen refetch now; the rest refetch when next opened.
+const queryClient: QueryClient = new QueryClient({
+  mutationCache: new MutationCache({
+    onSuccess: () => {
+      void queryClient.invalidateQueries()
+    },
+  }),
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 min
+      // Data from other people's changes (e.g. attendance marked by a coordinator) shows within a minute.
+      staleTime: 1000 * 60,
       retry: 2,
     },
   },

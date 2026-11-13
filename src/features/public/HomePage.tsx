@@ -6,6 +6,8 @@ import { PublicHeader } from '@/components/layout/PublicHeader';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getSchedule } from '@/lib/api/events';
+import { getAnnouncements } from '@/lib/api/announcements';
+import { formatDateTime } from '@/lib/eventDisplay';
 
 export type CategoryKey = 'arts' | 'literature' | 'stage' | 'theatre' | 'special';
 
@@ -13,6 +15,8 @@ interface DetailItem {
   name: string;
   time: string;
   venue: string;
+  /** Longer text under the name (announcement body). */
+  note?: string;
 }
 
 interface DetailModal {
@@ -620,12 +624,7 @@ const PANEL_DETAILS: Record<string, DetailModal> = {
     subtitle: 'STAY UPDATED',
     tag: 'Live Fest Bulletin',
     accent: '#00966b',
-    items: [
-      { name: 'Student registration open! Log in with your 6-digit roll number.', time: 'Just now', venue: 'Portal' },
-      { name: 'Stage pass QR codes are now active in the student dashboard.', time: '25m ago', venue: 'System' },
-      { name: 'Battle of Bands soundcheck moved to 10:15 AM at KE doc.', time: '1h ago', venue: 'KE (doc)' },
-      { name: 'Collect participant comic badges at Information Desk A.', time: '2h ago', venue: 'Main Gate' },
-    ],
+    items: [],
   },
   winners: {
     title: 'WINNERS & STANDINGS',
@@ -648,6 +647,7 @@ export default function HomePage() {
   const [selectedModal, setSelectedModal] = useState<DetailModal | null>(null);
   // The schedule popup reads the live timetable, so date, time and venue edits in the admin show here too.
   const { data: schedule = [] } = useQuery({ queryKey: ['schedule'], queryFn: getSchedule });
+  const { data: announcements = [] } = useQuery({ queryKey: ['announcements'], queryFn: getAnnouncements });
   const modal: DetailModal | null =
     selectedModal === PANEL_DETAILS.schedule && schedule.length > 0
       ? {
@@ -657,6 +657,15 @@ export default function HomePage() {
             time: e.dateStr.replace(/-/g, '.') + (e.timings && e.timings !== 'TBD' ? ` · ${e.timings}` : ''),
             venue: e.venue,
           })),
+        }
+      : selectedModal === PANEL_DETAILS.announcements
+      ? {
+          ...selectedModal,
+          // Real posts from Admin → Announcements, newest (and pinned) first.
+          items:
+            announcements.length > 0
+              ? announcements.slice(0, 8).map((a) => ({ name: a.title, note: a.body, time: formatDateTime(a.publish_at ?? a.created_at), venue: '' }))
+              : [{ name: 'No announcements yet. Check back soon.', time: '', venue: '' }],
         }
       : selectedModal;
 
@@ -723,11 +732,14 @@ export default function HomePage() {
                 >
                   <div>
                     <p className="font-bold text-[13.5px] text-[#0f0f0f]">{item.name}</p>
-                    <p className="text-[11.5px] text-neutral-600 font-semibold inline-flex items-center gap-1"><MapPin className="w-3 h-3" aria-hidden="true" /> {item.venue}</p>
+                    {item.note && <p className="text-[12px] text-neutral-700 mt-0.5 line-clamp-3">{item.note}</p>}
+                    {item.venue && <p className="text-[11.5px] text-neutral-600 font-semibold inline-flex items-center gap-1"><MapPin className="w-3 h-3" aria-hidden="true" /> {item.venue}</p>}
                   </div>
-                  <span className="bg-[#f8ca16] border-[1.8px] border-[#0f0f0f] px-2 py-0.5 font-comic-sub font-bold text-[12px] shrink-0">
-                    {item.time}
-                  </span>
+                  {item.time && (
+                    <span className="bg-[#f8ca16] border-[1.8px] border-[#0f0f0f] px-2 py-0.5 font-comic-sub font-bold text-[12px] shrink-0">
+                      {item.time}
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
