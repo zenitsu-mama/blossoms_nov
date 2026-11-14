@@ -4,8 +4,40 @@ import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { DisplayText } from '@/components/comic/ComicPrimitives'
 import { getAllEventsForAdmin } from '@/lib/api/events'
-import { getClassList } from '@/lib/api/admin'
+import { getClassList, listAssignments } from '@/lib/api/admin'
+import { useAuth } from '@/lib/auth/authStore'
 import { cn } from '@/lib/utils'
+
+/**
+ * Who may change an event: super admins and content editors change every event; a coordinator only the events
+ * assigned to them. Everyone else (coordinators with no events, analysts) can view and export but not change.
+ * The database enforces the same rule; this only hides controls that would be refused.
+ */
+export function useEventAccess() {
+  const { admin } = useAuth()
+  const all = admin?.role === 'super_admin' || admin?.role === 'content_editor'
+  const { data, isLoading } = useQuery({
+    queryKey: ['my-event-assignments', admin?.id],
+    queryFn: listAssignments,
+    enabled: Boolean(admin) && !all,
+  })
+  const mine = new Set((data ?? []).filter((a) => a.admin_profile_id === admin?.id).map((a) => a.event_id))
+  return {
+    /** True while unknown, so editors never see a flash of "view only". */
+    canManage: (eventId?: string | null) => all || (Boolean(eventId) && (isLoading || mine.has(eventId!))),
+    canManageAny: all || isLoading || mine.size > 0,
+  }
+}
+
+/** Banner for an event the admin can see but not change. */
+export function ViewOnlyNote({ what = 'this event' }: { what?: string }) {
+  return (
+    <p className="rounded-xl border-2 border-ink bg-[#FFD43B] px-4 py-2 text-sm font-semibold text-ink">
+      View only. You aren&apos;t assigned to {what}, so you can look and export but not make changes. A super admin can
+      assign you in Admins &amp; contacts.
+    </p>
+  )
+}
 
 export function PageHeader({ title, description, actions }: { title: string; description?: string; actions?: React.ReactNode }) {
   return (

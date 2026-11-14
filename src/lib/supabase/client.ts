@@ -12,6 +12,18 @@ const isPlaceholder = (v?: string) => !v || /your-project-ref|your-anon-key|plac
 
 export const isSupabaseConfigured = !isPlaceholder(envUrl) && !isPlaceholder(envKey)
 
+/**
+ * True when the site talks to a Supabase running on this computer (`npm run dev:local`), i.e. a throwaway copy:
+ * nothing done here reaches the live database.
+ */
+export const isLocalDatabase = (() => {
+  try {
+    return ['127.0.0.1', 'localhost'].includes(new URL(supabaseUrl).hostname)
+  } catch {
+    return false
+  }
+})()
+
 if (!isSupabaseConfigured && import.meta.env.DEV) {
   console.info(
     'ℹ️ Supabase environment variables not detected. Running in mock/offline mode. Provide VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.local to connect to live Supabase.'

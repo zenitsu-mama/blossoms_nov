@@ -12,7 +12,7 @@ import { getEventRoster, markAttendance, spotRegister, type RosterRow, type Spot
 import { formatTime } from '@/lib/eventDisplay'
 import { cn } from '@/lib/utils'
 import type { Event } from '@/types'
-import { DataTable, EventSelect, Muted, PageHeader, Panel, SearchBox, SortTh, selectClass, useAdminEvents, useSort } from './AdminUI'
+import { DataTable, EventSelect, Muted, PageHeader, Panel, SearchBox, SortTh, selectClass, useAdminEvents, useEventAccess, useSort, ViewOnlyNote } from './AdminUI'
 
 export default function AdminAttendance() {
   const [params, setParams] = useSearchParams()
@@ -21,6 +21,7 @@ export default function AdminAttendance() {
   const queryClient = useQueryClient()
   const { data: adminEvents = [] } = useAdminEvents()
   const selectedEvent = adminEvents.find((e) => e.id === eventId)
+  const canEdit = useEventAccess().canManage(eventId)
 
   const { data: roster = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ['admin-roster', eventId],
@@ -111,7 +112,9 @@ export default function AdminAttendance() {
         )}
       </div>
 
-      {eventId && selectedEvent && !selectedEvent.is_mandatory && (
+      {eventId && !canEdit && <ViewOnlyNote />}
+
+      {eventId && canEdit && selectedEvent && !selectedEvent.is_mandatory && (
         <SpotRegisterPanel
           key={eventId}
           event={selectedEvent}
@@ -140,7 +143,7 @@ export default function AdminAttendance() {
               <span className="font-semibold text-ink/60 tabular-nums">
                 {unmarked} {mandatory ? 'unmarked (counted present)' : 'unmarked'}
               </span>
-              {unmarked > 0 && !mandatory && (
+              {unmarked > 0 && !mandatory && canEdit && (
                 <>
                   <Button size="sm" variant="outline" onClick={() => markRest('present')} disabled={mark.isPending}>
                     Rest present
@@ -175,7 +178,7 @@ export default function AdminAttendance() {
                   key={r.student_id}
                   row={r}
                   showSession={showSessions}
-                  busy={mark.isPending}
+                  busy={mark.isPending || !canEdit}
                   onMark={(status) => mark.mutate({ ids: [r.student_id], status })}
                 />
               ))}

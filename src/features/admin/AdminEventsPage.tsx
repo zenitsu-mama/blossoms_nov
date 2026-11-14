@@ -12,12 +12,13 @@ import { registrationState } from '@/lib/api/events'
 import { slotLabel, teamSizeLabel } from '@/lib/eventDisplay'
 import { cn } from '@/lib/utils'
 import type { Event } from '@/types'
-import { DataTable, PageHeader, Panel, SearchBox, SortTh, useAdminEvents, useSort } from './AdminUI'
+import { DataTable, PageHeader, Panel, SearchBox, SortTh, useAdminEvents, useEventAccess, useSort } from './AdminUI'
 
 export default function AdminEventsPage() {
   const { data: events = [], isLoading, isError, error, refetch } = useAdminEvents()
   const [category, setCategory] = useState('all')
   const [search, setSearch] = useState('')
+  const access = useEventAccess()
 
   const categories = [...new Map(events.map((e) => [e.category?.slug ?? '', e.category?.name ?? ''])).entries()].filter(([s]) => s)
   const filtered = events.filter(
@@ -79,7 +80,7 @@ export default function AdminEventsPage() {
             </thead>
             <tbody>
               {sorted.map((e) => (
-                <EventRow key={e.id} event={e} />
+                <EventRow key={e.id} event={e} canEdit={access.canManage(e.id)} />
               ))}
             </tbody>
           </DataTable>
@@ -89,7 +90,7 @@ export default function AdminEventsPage() {
   )
 }
 
-function EventRow({ event }: { event: Event }) {
+function EventRow({ event, canEdit }: { event: Event; canEdit: boolean }) {
   const queryClient = useQueryClient()
   const [link, setLink] = useState(event.whatsapp_group_url ?? '')
   const state = registrationState(event)
@@ -119,7 +120,7 @@ function EventRow({ event }: { event: Event }) {
           {slotLabel(event.schedule_slots?.[0])} · {teamSizeLabel(event)}
         </p>
         <Link to={`/admin/events/${event.id}`} className="md:hidden mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary">
-          <Pencil className="w-3 h-3" /> Edit event
+          <Pencil className="w-3 h-3" /> {canEdit ? 'Edit event' : 'View event'}
         </Link>
       </td>
       <td className="hidden md:table-cell text-xs whitespace-nowrap">
@@ -133,19 +134,22 @@ function EventRow({ event }: { event: Event }) {
         ) : (
           <div className="flex flex-col items-start gap-1.5">
             <Badge variant={state.open ? 'open' : 'closed'}>{state.label}</Badge>
-            <button
+            {canEdit && <button
               type="button"
               disabled={save.isPending}
               onClick={() => save.mutate({ registration_closed: !event.registration_closed })}
               className="text-xs font-semibold text-primary hover:underline disabled:opacity-50"
             >
               {event.registration_closed ? 'Reopen registration' : 'Close registration'}
-            </button>
+            </button>}
           </div>
         )}
       </td>
       <td className="hidden md:table-cell min-w-[240px]">
-        {event.registration_enabled !== false && (
+        {event.registration_enabled !== false && !canEdit && (
+          <span className="text-xs text-ink/60">{event.whatsapp_group_url ? 'WhatsApp group linked' : 'No WhatsApp group'}</span>
+        )}
+        {event.registration_enabled !== false && canEdit && (
           <form
             className="flex gap-1.5"
             onSubmit={(e) => {
@@ -181,7 +185,7 @@ function EventRow({ event }: { event: Event }) {
       </td>
       <td className="hidden md:table-cell">
         <Link to={`/admin/events/${event.id}`} className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
-          <Pencil className="w-3 h-3" /> Edit
+          <Pencil className="w-3 h-3" /> {canEdit ? 'Edit' : 'View'}
         </Link>
       </td>
     </tr>

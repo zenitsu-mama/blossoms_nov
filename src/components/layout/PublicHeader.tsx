@@ -11,6 +11,8 @@ const NAV_LINKS: NavItem[] = [
   { label: 'Home',         href: '/' },
   { label: 'Events',       href: '/events' },
   { label: 'Schedule',     href: '/schedule' },
+  // Always listed: shows "coming soon" until an admin switches the scoreboard on.
+  { label: 'Scoreboard',   href: '/scoreboard' },
   { label: 'Results',      href: '/winners' },
   { label: 'Gallery',      href: '/gallery' },
   { label: 'Notice Board', href: '/announcements' },
@@ -20,6 +22,7 @@ const NAV_LINKS: NavItem[] = [
 export function PublicHeader() {
   const [menuOpen, setMenuOpen] = useState(false)
   const auth = useAuth()
+  const navLinks = NAV_LINKS
   const student = auth.student
   const admin = Boolean(auth.admin)
   const location = useLocation()
@@ -79,7 +82,7 @@ export function PublicHeader() {
       {/* ── Center Section: Framer-Style Floating Pill Navigation ─────── */}
       <div className="hidden min-[1200px]:flex items-center justify-center flex-1 mx-4">
         <FloatingPillNavigation
-          items={NAV_LINKS}
+          items={navLinks}
           backgroundColor="#FFF8E8"
           textColor="#151515"
           activeBackgroundColor="#FFD43B"
@@ -176,7 +179,7 @@ export function PublicHeader() {
           className="min-[1200px]:hidden fixed inset-x-0 top-16 bottom-0 z-[100] bg-[#FFF8E8] flex flex-col p-6 overflow-y-auto"
         >
           <nav aria-label="Mobile Navigation" className="flex flex-col gap-2">
-            {NAV_LINKS.map((link) => {
+            {navLinks.map((link) => {
               const active = isLinkActive(link.href)
               return (
                 <Link

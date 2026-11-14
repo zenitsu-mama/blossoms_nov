@@ -20,11 +20,21 @@ import {
 } from '@/lib/api/admin'
 import { useAuth } from '@/lib/auth/authStore'
 import { DataTable, Muted, PageHeader, Panel, SortTh, selectClass, useSort } from './AdminUI'
+import { ScoreboardPanel } from './AdminScoreboardPanel'
 
 const MAX_TEAMS = 4
 
 /** Participation rules, the four fest teams and which team each class plays for. */
 export default function AdminPointsTeams() {
+  const { admin } = useAuth()
+  // The menu hides this page from other admins; this also stops anyone who opens the link directly.
+  if (admin && admin.role !== 'super_admin') {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Points & teams" description="Only super admins can open this page." />
+      </div>
+    )
+  }
   return (
     <div className="space-y-6">
       <PageHeader
@@ -32,6 +42,7 @@ export default function AdminPointsTeams() {
         description="Set how many events each student must attend, run the four teams and put every class in one. Points from participation and wins are added once the points board is set."
       />
       <RulesPanel />
+      <ScoreboardPanel />
       <TeamsPanel />
       <ClassTeamsPanel />
     </div>
@@ -86,8 +97,10 @@ function RulesPanel() {
         <label className="flex items-start gap-2 text-sm font-semibold">
           <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} className="w-4 h-4 mt-0.5 accent-[var(--color-primary)]" />
           <span>
-            Show team standings on the public Results page
-            <span className="block text-xs font-normal text-ink/60">Only the four team totals are public. Class-wise numbers stay in the admin console.</span>
+            Show the scoreboard to everyone
+            <span className="block text-xs font-normal text-ink/60">
+              Adds Scoreboard to the menu. The public sees only each team's position (1st–4th), never points or class positions.
+            </span>
           </span>
         </label>
         <Button type="submit" isLoading={save.isPending}>

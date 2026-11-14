@@ -3,7 +3,7 @@
 // email to the register number (claim_student_account). Admins: invited email → code.
 // No passwords and no client-side checks that matter: every rule lives in the database.
 import { useSyncExternalStore } from 'react'
-import { supabase, isSupabaseConfigured } from '@/lib/supabase/client'
+import { supabase, isSupabaseConfigured, isLocalDatabase } from '@/lib/supabase/client'
 import type { UserRole } from '@/types'
 
 export interface StudentProfile {
@@ -104,6 +104,22 @@ interface SessionProfileRow {
 }
 
 let refreshing: Promise<AuthState> | null = null
+let devSignInTried = false
+
+/**
+ * `npm run dev:local` only: sign in automatically as the local dev admin. Needs a development build, a Supabase
+ * on this computer (127.0.0.1 / localhost) and VITE_DEV_ADMIN_EMAIL / VITE_DEV_ADMIN_PASSWORD in
+ * .env.localdb.local. The live site and `npm run dev` (live database) never do this.
+ */
+async function signInLocalDevAdmin() {
+  const email = import.meta.env.VITE_DEV_ADMIN_EMAIL as string | undefined
+  const password = import.meta.env.VITE_DEV_ADMIN_PASSWORD as string | undefined
+  if (!import.meta.env.DEV || !isLocalDatabase || !email || !password || devSignInTried) return null
+  devSignInTried = true
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  if (error) console.warn('Local dev admin sign-in failed:', error.message)
+  return data.session ?? null
+}
 
 /** Re-reads the signed-in user's student/admin profile from the database. */
 export function refreshAuth(): Promise<AuthState> {
@@ -122,7 +138,8 @@ async function doRefresh(): Promise<AuthState> {
   }
 
   const { data } = await supabase.auth.getSession()
-  const session = data.session
+  let session = data.session
+  if (!session) session = await signInLocalDevAdmin()
   if (!session) {
     setState({ ...INITIAL, ready: true })
     return state

@@ -5,7 +5,7 @@ import { Trophy } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { getEventEntrants, getWinnersForEvent, setWinners, type Entrant } from '@/lib/api/admin'
-import { EventSelect, Muted, PageHeader, Panel, selectClass } from './AdminUI'
+import { EventSelect, Muted, PageHeader, Panel, selectClass, useEventAccess, ViewOnlyNote } from './AdminUI'
 
 const PLACES = [1, 2, 3]
 const keyOf = (e: { team_id?: string | null; student_id?: string | null }) => (e.team_id ? `t:${e.team_id}` : e.student_id ? `s:${e.student_id}` : '')
@@ -15,6 +15,7 @@ export default function AdminWinners() {
   const [picks, setPicks] = useState<Record<number, string>>({})
   const [notify, setNotify] = useState(true)
   const queryClient = useQueryClient()
+  const canEdit = useEventAccess().canManage(eventId)
 
   const entrants = useQuery({ queryKey: ['admin-entrants', eventId], queryFn: () => getEventEntrants(eventId), enabled: Boolean(eventId) })
   const current = useQuery({ queryKey: ['admin-winners', eventId], queryFn: () => getWinnersForEvent(eventId), enabled: Boolean(eventId) })
@@ -60,6 +61,8 @@ export default function AdminWinners() {
         <Muted>Nobody registered for this event, so there is nobody to declare.</Muted>
       ) : (
         <Panel className="max-w-2xl">
+          {!canEdit && <div className="mb-4"><ViewOnlyNote /></div>}
+          <fieldset disabled={!canEdit} className="min-w-0 border-0 p-0 m-0">
           <form
             onSubmit={(e) => {
               e.preventDefault()
@@ -89,10 +92,13 @@ export default function AdminWinners() {
               <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} className="w-4 h-4 accent-[var(--color-primary)]" />
               Notify everyone registered for this event
             </label>
-            <Button type="submit" isLoading={save.isPending}>
-              Publish results
-            </Button>
+            {canEdit && (
+              <Button type="submit" isLoading={save.isPending}>
+                Publish results
+              </Button>
+            )}
           </form>
+          </fieldset>
         </Panel>
       )}
     </div>

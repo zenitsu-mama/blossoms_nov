@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { updateEvent, type EventPatch } from '@/lib/api/admin'
 import { slotLabel } from '@/lib/eventDisplay'
 import type { EventStatus } from '@/types'
-import { PageHeader, Panel, selectClass, useAdminEvents } from './AdminUI'
+import { PageHeader, Panel, selectClass, useAdminEvents, useEventAccess, ViewOnlyNote } from './AdminUI'
 import { EventSessionsPanel } from './EventSessionsPanel'
 
 /** datetime-local value in IST for an ISO timestamp */
@@ -28,6 +28,7 @@ export default function AdminEventEditor() {
   const { data: events = [], isLoading } = useAdminEvents()
   const event = events.find((e) => e.id === id)
   const [form, setForm] = useState<EventPatch>({})
+  const canEdit = useEventAccess().canManage(id)
 
   useEffect(() => {
     if (!event) return
@@ -83,6 +84,9 @@ export default function AdminEventEditor() {
         title={event.title}
         description={[event.category?.name, slotLabel(event.schedule_slots?.[0]), event.schedule_slots?.[0]?.venue?.name].filter(Boolean).join(' · ')}
       />
+      {!canEdit && <ViewOnlyNote />}
+      {/* A disabled fieldset locks every field and button inside it. */}
+      <fieldset disabled={!canEdit} className="min-w-0 space-y-6 border-0 p-0 m-0">
       <EventSessionsPanel event={event} />
 
       <form
@@ -192,10 +196,13 @@ export default function AdminEventEditor() {
           </Panel>
         )}
 
-        <Button type="submit" size="lg" isLoading={save.isPending}>
-          Save event
-        </Button>
+        {canEdit && (
+          <Button type="submit" size="lg" isLoading={save.isPending}>
+            Save event
+          </Button>
+        )}
       </form>
+      </fieldset>
     </div>
   )
 }

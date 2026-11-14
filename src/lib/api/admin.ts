@@ -584,3 +584,145 @@ export interface TeamStanding {
 
 /** Empty for the public until an admin switches the standings on. */
 export const getTeamLeaderboard = () => rpc<TeamStanding[]>('get_team_leaderboard')
+
+// ── Scoreboard (positions only for the public; points stay with admins) ───────
+export interface TeamPosition {
+  team_id: string
+  name: string
+  color: string
+  /** 1–4 (ties share a place); null until any points are recorded. */
+  position: number | null
+}
+
+/** Team positions in order. Empty for the public while the scoreboard is switched off. */
+export const getTeamPositions = () => rpc<TeamPosition[]>('get_team_positions')
+
+export interface ScoreboardRow {
+  scoring_class: string
+  team_id: string
+  team_name: string
+  team_color: string
+  /** Events won 1st / 2nd / 3rd (a team win counts once). */
+  n_first: number
+  n_second: number
+  n_third: number
+  /** Students who took part (present) without placing. */
+  n_participation: number
+  n_walkover: number
+  n_not_registered: number
+  extra_points: number
+  class_points: number
+  class_position: number
+  team_points: number
+  team_position: number
+}
+
+/** Every class with its hidden points and its class and team positions (super admins only). */
+export const getAdminScoreboard = () => rpc<ScoreboardRow[]>('admin_scoreboard')
+
+export type ScoreKind = 'first' | 'second' | 'third' | 'participation' | 'walkover' | 'not_registered' | 'extra'
+
+export interface EventScoreRow {
+  scoring_class: string
+  team_name: string | null
+  team_color: string | null
+  kind: ScoreKind
+  entries: number
+  points: number
+}
+
+/** What one event gave each class, by kind (super admins only). */
+export const getEventScores = (eventId: string) => rpc<EventScoreRow[]>('admin_event_scores', { p_event_id: eventId })
+
+// The scoring sheet's settings: point values, multipliers and switches (one row).
+export interface ScoringRules {
+  pts_first: number
+  pts_second: number
+  pts_third: number
+  pts_participation: number
+  pts_walkover: number
+  pts_not_registered: number
+  mult_individual: number
+  mult_group: number
+  mult_class_wise: number
+  penalties_use_multiplier: boolean
+  class_wise_active: boolean
+}
+
+const RULE_COLUMNS =
+  'pts_first, pts_second, pts_third, pts_participation, pts_walkover, pts_not_registered, mult_individual, mult_group, mult_class_wise, penalties_use_multiplier, class_wise_active'
+
+export async function getScoringRules(): Promise<ScoringRules> {
+  const { data, error } = await supabase.from('scoring_rules').select(RULE_COLUMNS).single()
+  if (error) throw new Error(error.message)
+  return data as ScoringRules
+}
+
+export async function updateScoringRules(patch: ScoringRules, updatedBy?: string): Promise<void> {
+  const { data, error } = await supabase
+    .from('scoring_rules')
+    .update({ ...patch, updated_by: updatedBy ?? null, updated_at: new Date().toISOString() })
+    .eq('id', true)
+    .select('id')
+  if (error) throw new Error(error.message)
+  if (!data?.length) throw new Error('Not saved: only super admins can change the scoring rules.')
+}
+
+export type ScoringType = 'individual' | 'group' | 'class_wise'
+
+/** Events whose scoring type was set by hand (others follow their format). */
+export async function listEventScoringTypes(): Promise<Record<string, ScoringType>> {
+  const { data, error } = await supabase.from('event_scoring_types').select('event_id, scoring_type')
+  if (error) throw new Error(error.message)
+  return Object.fromEntries((data ?? []).map((r) => [r.event_id as string, r.scoring_type as ScoringType]))
+}
+
+/** Set an event's scoring type, or null to follow its format again. */
+export async function setEventScoringType(eventId: string, type: ScoringType | null): Promise<void> {
+  const { error } = type
+    ? await supabase.from('event_scoring_types').upsert({ event_id: eventId, scoring_type: type })
+    : await supabase.from('event_scoring_types').delete().eq('event_id', eventId)
+  if (error) throw new Error(error.message)
+}
+
+export type ManualKind = 'walkover' | 'not_registered' | 'extra'
+
+export interface PointsEntry {
+  id: string
+  scoring_class: string
+  kind: ManualKind
+  /** Only for extra points; penalties take their value from the scoring rules. */
+  points: number | null
+  note: string | null
+  event_id: string | null
+  created_at: string
+  event?: { title: string } | null
+}
+
+export async function listClassPoints(): Promise<PointsEntry[]> {
+  const { data, error } = await supabase
+    .from('class_points')
+    .select('id, scoring_class, kind, points, note, event_id, created_at, event:events(title)')
+    .order('created_at', { ascending: false })
+    .limit(500)
+  if (error) throw new Error(error.message)
+  return (data ?? []) as unknown as PointsEntry[]
+}
+
+export async function addClassPoints(
+  input: { scoring_class: string; kind: ManualKind; points: number | null; note: string | null; event_id: string | null },
+  createdBy?: string
+): Promise<void> {
+  const { data, error } = await supabase.from('class_points').insert({ ...input, created_by: createdBy ?? null }).select('id')
+  if (error) {
+    if (error.code === '23505') throw new Error(`${input.scoring_class} already has this penalty for that event.`)
+    throw new Error(error.message)
+  }
+  if (!data?.length) throw new Error('Not saved: only super admins can add points.')
+}
+
+export async function deleteClassPoints(id: string): Promise<void> {
+  const { data, error } = await supabase.from('class_points').delete().eq('id', id).select('id')
+  if (error) throw new Error(error.message)
+  if (!data?.length) throw new Error('Not removed: only super admins can remove points.')
+}

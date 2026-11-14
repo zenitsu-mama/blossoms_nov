@@ -3,6 +3,7 @@ import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react
 import { Suspense, lazy, useEffect } from 'react'
 import { Toaster } from 'react-hot-toast'
 import { ConfirmHost } from '@/components/ui/ConfirmDialog'
+import { isLocalDatabase } from '@/lib/supabase/client'
 
 // Layouts
 import { PublicShell }  from '@/components/layout/PublicShell'
@@ -25,6 +26,7 @@ import { getCategories } from '@/lib/api/events'
 import { getAnnouncements } from '@/lib/api/announcements'
 
 const DesignSystemPage    = lazy(() => import('@/features/public/DesignSystemPage'))
+const ScoreboardPage      = lazy(() => import('@/features/scoreboard/ScoreboardPage'))
 
 // Student pages (lazy loaded)
 const StudentDashboard    = lazy(() => import('@/features/student/StudentDashboard'))
@@ -117,6 +119,7 @@ export default function App() {
               <Route path="events" element={<EventsPage />} />
               <Route path="events/:slug" element={<EventDetailPage />} />
               <Route path="schedule" element={<SchedulePage />} />
+              <Route path="scoreboard" element={<ScoreboardPage />} />
               <Route path="announcements" element={<AnnouncementsPage />} />
               <Route path="team" element={<TeamPage />} />
               <Route path="contact" element={<Navigate to="/" replace />} />
@@ -165,6 +168,11 @@ export default function App() {
           </Routes>
         </Suspense>
       </BrowserRouter>
+      {isLocalDatabase && (
+        <div className="fixed bottom-2 left-2 z-[9999] rounded-full border-2 border-ink bg-[#7CFC9A] px-3 py-1 text-xs font-bold text-ink shadow-[2px_2px_0_0_#151515] pointer-events-none">
+          LOCAL COPY · changes here don&apos;t reach the live site
+        </div>
+      )}
       <ConfirmHost />
       <Toaster
         position="top-right"
