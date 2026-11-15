@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Plus, X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Skeleton } from '@/components/ui/Skeleton'
-import { updateEvent, type EventPatch } from '@/lib/api/admin'
+import { saveEventHeads, updateEvent, type EventPatch, type HeadInput } from '@/lib/api/admin'
 import { slotLabel } from '@/lib/eventDisplay'
 import type { EventStatus } from '@/types'
 import { PageHeader, Panel, selectClass, useAdminEvents, useEventAccess, ViewOnlyNote } from './AdminUI'
@@ -29,9 +29,13 @@ export default function AdminEventEditor() {
   const event = events.find((e) => e.id === id)
   const [form, setForm] = useState<EventPatch>({})
   const canEdit = useEventAccess().canManage(id)
+  const savedHeads = (event?.contacts ?? []).filter((c) => c.role === 'student_head').map((c) => ({ id: c.id, name: c.name }))
+  const faculty = (event?.contacts ?? []).filter((c) => c.role === 'faculty_coordinator')
+  const [heads, setHeads] = useState<HeadInput[]>([])
 
   useEffect(() => {
     if (!event) return
+    setHeads((event.contacts ?? []).filter((c) => c.role === 'student_head').map((c) => ({ id: c.id, name: c.name })))
     setForm({
       title: event.title,
       description: event.description,
@@ -51,7 +55,11 @@ export default function AdminEventEditor() {
   }, [event])
 
   const save = useMutation({
-    mutationFn: () => updateEvent(id!, form),
+    mutationFn: async () => {
+      await updateEvent(id!, form)
+      const headsChanged = JSON.stringify(heads.map((h) => [h.id, h.name.trim()]).filter(([, n]) => n)) !== JSON.stringify(savedHeads.map((h) => [h.id, h.name]))
+      if (headsChanged) await saveEventHeads(id!, savedHeads, heads)
+    },
     onSuccess: () => {
       toast.success('Event saved')
       queryClient.invalidateQueries({ queryKey: ['admin-events'] })
@@ -188,13 +196,34 @@ export default function AdminEventEditor() {
           </div>
         </Panel>
 
-        {event.contacts && event.contacts.length > 0 && (
-          <Panel title="Contacts">
-            <p className="text-sm">
-              <strong>Event heads:</strong> {event.contacts.filter((c) => c.role === 'student_head').map((c) => c.name).join(', ') || '—'}
+        <Panel title="Event heads">
+          <p className="text-xs text-ink/60 mb-3">Shown on the event page. Saved with the event.</p>
+          <div className="space-y-2">
+            {heads.map((h, i) => (
+              <div key={h.id ?? `new-${i}`} className="flex gap-2">
+                <input
+                  aria-label={`Event head ${i + 1} name`}
+                  value={h.name}
+                  onChange={(e) => setHeads((list) => list.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))}
+                  placeholder="Name"
+                  className="flex-1 rounded-xl border-2 border-ink bg-paper px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                />
+                <Button type="button" variant="outline" size="sm" aria-label={`Remove ${h.name || 'event head'}`} onClick={() => setHeads((list) => list.filter((_, j) => j !== i))}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+            {heads.length === 0 && <p className="text-sm text-ink/60">No event heads.</p>}
+          </div>
+          <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => setHeads((list) => [...list, { name: '' }])}>
+            <Plus className="w-4 h-4" /> Add event head
+          </Button>
+          {faculty.length > 0 && (
+            <p className="text-sm mt-4">
+              <strong>Faculty:</strong> {faculty.map((c) => c.name).join(', ')}
             </p>
-          </Panel>
-        )}
+          )}
+        </Panel>
 
         {canEdit && (
           <Button type="submit" size="lg" isLoading={save.isPending}>

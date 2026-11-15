@@ -241,6 +241,39 @@ export async function updateEvent(id: string, patch: EventPatch): Promise<void> 
   if (!data || data.length === 0) throw new Error('Not saved: you do not have permission to edit this event.')
 }
 
+// ── Event heads (student contacts shown on the event page) ───────────────────
+export interface HeadInput {
+  id?: string
+  name: string
+}
+
+/** Saves an event's student heads: renames changed ones, adds new ones, removes deleted ones. Keeps list order. */
+export async function saveEventHeads(eventId: string, before: { id?: string; name: string }[], after: HeadInput[]): Promise<void> {
+  const keep = after.map((h, i) => ({ ...h, name: h.name.trim(), display_order: i })).filter((h) => h.name)
+  const keptIds = new Set(keep.map((h) => h.id).filter(Boolean))
+  const removed = before.filter((h) => h.id && !keptIds.has(h.id)).map((h) => h.id!)
+
+  if (removed.length) {
+    const { data, error } = await supabase.from('event_contacts').delete().in('id', removed).select('id')
+    if (error) throw new Error(error.message)
+    if (!data || data.length !== removed.length) throw new Error('Event heads not saved: you do not have permission to edit this event.')
+  }
+  for (const h of keep.filter((h) => h.id)) {
+    const { data, error } = await supabase
+      .from('event_contacts')
+      .update({ name: h.name, display_order: h.display_order })
+      .eq('id', h.id!)
+      .select('id')
+    if (error) throw new Error(error.message)
+    if (!data || data.length === 0) throw new Error('Event heads not saved: you do not have permission to edit this event.')
+  }
+  const added = keep.filter((h) => !h.id).map((h) => ({ event_id: eventId, role: 'student_head', name: h.name, display_order: h.display_order }))
+  if (added.length) {
+    const { error } = await supabase.from('event_contacts').insert(added)
+    if (error) throw new Error(error.message)
+  }
+}
+
 // ── Sessions (date, time, venue) ─────────────────────────────────────────────
 export interface SlotInput {
   slotId: string | null // null adds a new session
