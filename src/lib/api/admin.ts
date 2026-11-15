@@ -9,6 +9,22 @@ async function rpc<T>(name: string, args?: Record<string, unknown>): Promise<T> 
   return data as T
 }
 
+/**
+ * For functions that return a list: the server sends at most 1000 rows per request, so fetch page after page
+ * until a short page comes back. The functions sort their rows, so pages never overlap or skip.
+ */
+const PAGE_ROWS = 1000
+async function rpcAll<T>(name: string, args?: Record<string, unknown>): Promise<T[]> {
+  const all: T[] = []
+  for (let from = 0; ; from += PAGE_ROWS) {
+    const { data, error } = await supabase.rpc(name, args).range(from, from + PAGE_ROWS - 1)
+    if (error) throw new Error(error.message)
+    const page = (data ?? []) as T[]
+    all.push(...page)
+    if (page.length < PAGE_ROWS) return all
+  }
+}
+
 // ── Analytics ─────────────────────────────────────────────────────────────────
 export interface DashboardStats {
   totals: {
@@ -65,7 +81,7 @@ export interface RosterRow {
   marked_at: string | null
 }
 
-export const getEventRoster = (eventId: string) => rpc<RosterRow[]>('admin_event_roster', { p_event_id: eventId })
+export const getEventRoster = (eventId: string) => rpcAll<RosterRow>('admin_event_roster', { p_event_id: eventId })
 
 export interface SpotEntry {
   register_number: string
@@ -107,7 +123,7 @@ export interface DefaulterRow {
 }
 
 export const getDefaulters = (kind: DefaulterKind, className?: string | null) =>
-  rpc<DefaulterRow[]>('admin_defaulters', { p_kind: kind, p_class: className || null })
+  rpcAll<DefaulterRow>('admin_defaulters', { p_kind: kind, p_class: className || null })
 
 // ── Exports ───────────────────────────────────────────────────────────────────
 export interface ParticipationRow {
@@ -126,7 +142,7 @@ export interface ParticipationRow {
   marked_at: string | null
 }
 
-export const getParticipationRows = () => rpc<ParticipationRow[]>('admin_participation_rows')
+export const getParticipationRows = () => rpcAll<ParticipationRow>('admin_participation_rows')
 
 // ── Students ──────────────────────────────────────────────────────────────────
 export interface AdminStudentRow {
@@ -183,7 +199,7 @@ export interface ClassRow {
   completed: number
 }
 
-export const getClassList = () => rpc<ClassRow[]>('admin_class_list')
+export const getClassList = () => rpcAll<ClassRow>('admin_class_list')
 
 export const setStudentEmail = (studentId: string, email: string | null, unlink: boolean) =>
   rpc<{ success: boolean; message?: string }>('admin_set_student_email', {
