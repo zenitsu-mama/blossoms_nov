@@ -140,9 +140,18 @@ export interface ParticipationRow {
   registered_at: string
   attendance_status: string | null
   marked_at: string | null
+  registration_id: string
+  event_id: string
 }
 
 export const getParticipationRows = () => rpcAll<ParticipationRow>('admin_participation_rows')
+
+/** Deletes one registration, with its attendance and team membership. Event managers only. */
+export async function deleteRegistration(registrationId: string): Promise<{ success: boolean; message: string }> {
+  const { data, error } = await supabase.rpc('admin_delete_registration', { p_registration_id: registrationId })
+  if (error) throw new Error(error.message.replace(/^FORBIDDEN:\s*/, ''))
+  return data as { success: boolean; message: string }
+}
 
 // ── Students ──────────────────────────────────────────────────────────────────
 export interface AdminStudentRow {
