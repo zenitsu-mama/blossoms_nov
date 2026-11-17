@@ -26,7 +26,7 @@ interface ExpandedCategoryFrameProps {
 const FULLSCREEN_CLIP_PATH = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)'
 
 const CATEGORY_TITLES: Record<string, string> = {
-  arts: 'ARTS',
+  arts: 'ART',
   literature: 'LITERARY',
   stage: 'STAGE',
   theatre: 'THEATRE',

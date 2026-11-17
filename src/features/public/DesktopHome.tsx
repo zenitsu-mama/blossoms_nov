@@ -26,7 +26,7 @@ interface HomePanel {
 const HOME_PANELS: HomePanel[] = [
   {
     slug: 'arts',
-    title: 'ARTS',
+    title: 'ART',
     tagline: 'PAINT. DESIGN. EXPRESS.',
     captionHex: '#f9d423',
     art: artsUrl,

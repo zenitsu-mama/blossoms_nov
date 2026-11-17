@@ -121,7 +121,7 @@ export default function AdminSchedulePage() {
             className="px-3 py-2 bg-[#FFF8E8] border border-ink rounded-xl text-xs font-bold text-ink uppercase tracking-wider focus:outline-none"
           >
             <option value="all">All Divisions</option>
-            <option value="Arts">Fine Arts</option>
+            <option value="Art">Art</option>
             <option value="Literary">Literary</option>
             <option value="Stage">Stage</option>
             <option value="Theatre">Theatre</option>

@@ -58,10 +58,10 @@ interface CategoryConfig {
 export const CATEGORY_DATA: Record<CategoryKey, CategoryConfig> = {
   arts: {
     key: 'arts',
-    cardTitle: 'ARTS',
-    headingTitle: 'FINE ARTS',
+    cardTitle: 'ART',
+    headingTitle: 'ART',
     subtitle: 'PAINT. DESIGN. EXPRESS.',
-    wingTag: 'BLOSSOMS 2026 • FINE ARTS WING',
+    wingTag: 'BLOSSOMS 2026 • ART WING',
     heroHeadline: 'UNLEASH YOUR INNER COMIC ARTIST!',
     heroSummary: '10 Flagship Competitions • ₹50,000 Prize Pool • Live Courtyard & Studio Showdowns',
     bgHex: '#ed1e79',
@@ -510,9 +510,9 @@ export const CATEGORY_DATA: Record<CategoryKey, CategoryConfig> = {
 
 const PANEL_DETAILS: Record<string, DetailModal> = {
   arts: {
-    title: 'ARTS',
+    title: 'ART',
     subtitle: 'PAINT. DESIGN. EXPRESS.',
-    tag: 'Fine Arts Wing • 10 Events',
+    tag: 'Art Wing • 10 Events',
     accent: '#ed1e79',
     items: [
       { name: 'Digital Poster Making', time: 'Nov 26', venue: 'Online Submission' },

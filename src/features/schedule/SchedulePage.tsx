@@ -18,7 +18,7 @@ import type { Event } from '@/types'
 type MonthFilter = 'all' | 'nov' | 'dec'
 
 const DIVISION_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  Arts: { bg: 'bg-[#ed1e79]/15', text: 'text-[#ed1e79]', border: 'border-[#ed1e79]' },
+  Art: { bg: 'bg-[#ed1e79]/15', text: 'text-[#ed1e79]', border: 'border-[#ed1e79]' },
   Literary: { bg: 'bg-[#0088e8]/15', text: 'text-[#0088e8]', border: 'border-[#0088e8]' },
   Stage: { bg: 'bg-[#fdb813]/25', text: 'text-[#946200]', border: 'border-[#fdb813]' },
   Theatre: { bg: 'bg-[#861ec2]/15', text: 'text-[#861ec2]', border: 'border-[#861ec2]' },
@@ -219,7 +219,7 @@ export default function SchedulePage() {
             >
               <option value="all">All Arenas</option>
               <option value="Literary">Literary</option>
-              <option value="Arts">Fine Arts</option>
+              <option value="Art">Art</option>
               <option value="Stage">Stage</option>
               <option value="Theatre">Theatre</option>
             </select>
@@ -324,7 +324,7 @@ export default function SchedulePage() {
                                 ? 'border-[#00966b] bg-[#e8f8f2] text-[#00966b]'
                                 : entry.division === 'Literary'
                                 ? 'border-[#0088e8] bg-[#eaf5fd] text-[#0088e8]'
-                                : entry.division === 'Arts'
+                                : entry.division === 'Art'
                                 ? 'border-[#ed1e79] bg-[#fdebf3] text-[#ed1e79]'
                                 : entry.division === 'Stage'
                                 ? 'border-[#e5a800] bg-[#fff8e6] text-[#996500]'

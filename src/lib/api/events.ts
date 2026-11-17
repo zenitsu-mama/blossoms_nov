@@ -112,7 +112,7 @@ interface ScheduleRow {
 
 const DIVISIONS: Record<string, MasterScheduleEntry['division']> = {
   Literary: 'Literary',
-  Arts: 'Arts',
+  Art: 'Art',
   Stage: 'Stage',
   Theatre: 'Theatre',
 }

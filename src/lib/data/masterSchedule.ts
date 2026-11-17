@@ -9,7 +9,7 @@ export interface MasterScheduleEntry {
   eventName: string
   venue: string
   timings: string
-  division: 'Arts' | 'Literary' | 'Stage' | 'Theatre' | 'Inauguration' | 'Special' | 'Off Day' | 'Holiday'
+  division: 'Art' | 'Literary' | 'Stage' | 'Theatre' | 'Inauguration' | 'Special' | 'Off Day' | 'Holiday'
   isOffDay?: boolean
   isHoliday?: boolean
   notes?: string
@@ -64,7 +64,7 @@ export const MASTER_SCHEDULE: MasterScheduleEntry[] = [
     eventName: 'Mixed Media Pot',
     venue: 'Basketball Court',
     timings: '3:45 PM',
-    division: 'Arts',
+    division: 'Art',
   },
   {
     id: 'sch-06',
@@ -74,7 +74,7 @@ export const MASTER_SCHEDULE: MasterScheduleEntry[] = [
     eventName: 'Rangoli Design',
     venue: 'Block 2 Entrance, Kiosk side',
     timings: '12:45 PM & 3:45 PM',
-    division: 'Arts',
+    division: 'Art',
   },
   {
     id: 'sch-07',
@@ -84,7 +84,7 @@ export const MASTER_SCHEDULE: MasterScheduleEntry[] = [
     eventName: 'Mehendi Design',
     venue: 'Classrooms',
     timings: '12:45 PM & 3:45 PM',
-    division: 'Arts',
+    division: 'Art',
   },
   {
     id: 'sch-08',
@@ -124,7 +124,7 @@ export const MASTER_SCHEDULE: MasterScheduleEntry[] = [
     eventName: 'Greeting Card',
     venue: 'Classrooms',
     timings: '12:45 PM & 3:45 PM',
-    division: 'Arts',
+    division: 'Art',
   },
   {
     id: 'sch-12',
@@ -144,7 +144,7 @@ export const MASTER_SCHEDULE: MasterScheduleEntry[] = [
     eventName: 'Digital Poster Making',
     venue: 'Online submission',
     timings: 'TBD',
-    division: 'Arts',
+    division: 'Art',
   },
   {
     id: 'sch-14',
@@ -184,7 +184,7 @@ export const MASTER_SCHEDULE: MasterScheduleEntry[] = [
     eventName: 'Pencil Sketching',
     venue: 'Classrooms',
     timings: 'TBD',
-    division: 'Arts',
+    division: 'Art',
   },
   {
     id: 'sch-18',
@@ -224,7 +224,7 @@ export const MASTER_SCHEDULE: MasterScheduleEntry[] = [
     eventName: 'Photography',
     venue: 'Online submission',
     timings: 'TBD',
-    division: 'Arts',
+    division: 'Art',
   },
   {
     id: 'sch-22',
@@ -274,7 +274,7 @@ export const MASTER_SCHEDULE: MasterScheduleEntry[] = [
     eventName: 'Painting',
     venue: 'Classrooms',
     timings: '12:45 PM & 3:45 PM',
-    division: 'Arts',
+    division: 'Art',
   },
   {
     id: 'sch-27',
@@ -284,7 +284,7 @@ export const MASTER_SCHEDULE: MasterScheduleEntry[] = [
     eventName: 'Reel Making',
     venue: 'Online submission',
     timings: 'TBD',
-    division: 'Arts',
+    division: 'Art',
   },
   {
     id: 'sch-28',
@@ -304,7 +304,7 @@ export const MASTER_SCHEDULE: MasterScheduleEntry[] = [
     eventName: 'Collage',
     venue: 'TBD',
     timings: '3:45 PM',
-    division: 'Arts',
+    division: 'Art',
   },
   {
     id: 'sch-30',

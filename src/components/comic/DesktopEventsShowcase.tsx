@@ -26,8 +26,8 @@ const DESKTOP_COMIC_PANELS: ComicPanelConfig[] = [
   {
     id: 'panel-1-arts',
     categoryKey: 'arts',
-    expandedFrameName: 'Arts Expanded',
-    ariaLabel: 'Arts events category panel',
+    expandedFrameName: 'Art Expanded',
+    ariaLabel: 'Art events category panel',
     imageSrc: panel1Url,
     accentColor: '#E52B27',
     isExpansionEnabled: true,
@@ -97,8 +97,8 @@ const MOBILE_COMIC_PANELS: ComicPanelConfig[] = [
   {
     id: 'mobile-panel-1-arts',
     categoryKey: 'arts',
-    expandedFrameName: 'Arts Expanded',
-    ariaLabel: 'Arts events category panel',
+    expandedFrameName: 'Art Expanded',
+    ariaLabel: 'Art events category panel',
     imageSrc: mobilePanel1Url,
     accentColor: '#E52B27',
     isExpansionEnabled: true,

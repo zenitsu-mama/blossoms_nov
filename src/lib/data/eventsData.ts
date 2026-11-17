@@ -129,7 +129,7 @@ export const VENUES: Record<string, Venue> = {
 export const CATEGORIES: EventCategory[] = [
   {
     "id": "cat-arts",
-    "name": "Arts",
+    "name": "Art",
     "slug": "arts",
     "description": "Visual art on the spot: drawing, painting, crafts, design and photography.",
     "icon_url": null,
