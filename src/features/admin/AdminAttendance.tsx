@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
-import { getEventRoster, lookupStudents, markAttendance, spotRegister, type RosterRow, type SpotEntry, type StudentPreview } from '@/lib/api/admin'
+import { deleteRegistration, getEventRoster, lookupStudents, markAttendance, spotRegister, type RosterRow, type SpotEntry, type StudentPreview } from '@/lib/api/admin'
 import { formatTime } from '@/lib/eventDisplay'
 import { cn } from '@/lib/utils'
 import type { Event } from '@/types'
@@ -69,6 +69,26 @@ export default function AdminAttendance() {
   const absent = roster.filter((r) => r.attendance_status === 'absent').length
   const unmarked = roster.length - present - absent
   const mandatory = roster[0]?.registration_status === 'mandatory'
+
+  const remove = useMutation({
+    mutationFn: (r: RosterRow) => deleteRegistration(r.registration_id),
+    onSuccess: (res) => {
+      if (!res.success) return toast.error(res.message, { duration: 6000 })
+      toast.success(res.message)
+      // Rosters, registrations, defaulters, teams and points can all change.
+      void queryClient.invalidateQueries()
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+
+  async function askDelete(r: RosterRow) {
+    const team = r.team_name ? ` They will be removed from team "${r.team_name}"${r.is_leader ? ' (they are its leader; the next member becomes leader)' : ''}.` : ''
+    const ok = await confirmDialog(
+      `Are you sure? ${r.full_name} (${r.register_number}, ${r.class_name ?? 'no class'})'s registration for ${selectedEvent?.title ?? 'this event'} is going to be deleted, along with their attendance for it.${team} This cannot be undone.`,
+      { title: 'Delete this registration?', confirmLabel: 'Yes, delete', cancelLabel: 'Keep it', danger: true }
+    )
+    if (ok) remove.mutate(r)
+  }
 
   // Sign-in sheet: everyone present (for mandatory events, everyone not marked absent), in the chosen session.
   const presentRows = roster
@@ -205,6 +225,8 @@ export default function AdminAttendance() {
                   showSession={showSessions}
                   busy={mark.isPending || !canEdit}
                   onMark={(status) => mark.mutate({ ids: [r.student_id], status })}
+                  onDelete={canEdit && !mandatory ? () => void askDelete(r) : undefined}
+                  deleting={remove.isPending}
                 />
               ))}
             </tbody>
@@ -220,11 +242,16 @@ function AttendanceRow({
   showSession,
   busy,
   onMark,
+  onDelete,
+  deleting,
 }: {
   row: RosterRow
   showSession: boolean
   busy: boolean
   onMark: (s: 'present' | 'absent' | 'clear') => void
+  /** Present only for admins who manage the event (and never for mandatory events). */
+  onDelete?: () => void
+  deleting?: boolean
 }) {
   const btn = 'inline-flex items-center gap-1 rounded-lg border-2 px-2.5 py-1 text-xs font-bold disabled:opacity-50'
   const session = row.session_starts_at ? formatTime(row.session_starts_at).toUpperCase() : 'Not chosen'
@@ -268,6 +295,18 @@ function AttendanceRow({
           {row.attendance_status && (
             <button type="button" disabled={busy} onClick={() => onMark('clear')} aria-label={`Clear attendance for ${row.full_name}`} className="p-1 text-ink/40 hover:text-ink">
               <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={onDelete}
+              aria-label={`Delete ${row.full_name}'s registration`}
+              title="Delete registration"
+              className="p-1 rounded text-ink/40 hover:text-comic-red-deep hover:bg-comic-red-deep/10 disabled:opacity-40"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
