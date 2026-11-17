@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { deleteRegistration, getEventRoster, lookupStudents, markAttendance, spotRegister, type RosterRow, type SpotEntry, type StudentPreview } from '@/lib/api/admin'
 import { formatTime } from '@/lib/eventDisplay'
+import { useAuth } from '@/lib/auth/authStore'
 import { cn } from '@/lib/utils'
 import type { Event } from '@/types'
 import { DataTable, EventSelect, Muted, PageHeader, Panel, SearchBox, SortTh, selectClass, useAdminEvents, useEventAccess, useSort, ViewOnlyNote } from './AdminUI'
@@ -23,6 +24,8 @@ export default function AdminAttendance() {
   const { data: adminEvents = [] } = useAdminEvents()
   const selectedEvent = adminEvents.find((e) => e.id === eventId)
   const canEdit = useEventAccess().canManage(eventId)
+  // Deleting a student's registration is for super admins only (the database enforces this too).
+  const canDelete = useAuth().admin?.role === 'super_admin'
 
   const { data: roster = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ['admin-roster', eventId],
@@ -215,6 +218,11 @@ export default function AdminAttendance() {
                 <SortTh label="Phone" sortKey="phone" sort={sort} onSort={toggle} className="hidden sm:table-cell" />
                 {showSessions && <SortTh label="Session" sortKey="session" sort={sort} onSort={toggle} className="hidden sm:table-cell" />}
                 <SortTh label="Attendance" sortKey="attendance" sort={sort} onSort={toggle} />
+                {canDelete && !mandatory && (
+                  <th className="w-10 text-right">
+                    <span className="sr-only">Delete</span>
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -225,7 +233,8 @@ export default function AdminAttendance() {
                   showSession={showSessions}
                   busy={mark.isPending || !canEdit}
                   onMark={(status) => mark.mutate({ ids: [r.student_id], status })}
-                  onDelete={canEdit && !mandatory ? () => void askDelete(r) : undefined}
+                  showDeleteColumn={canDelete && !mandatory}
+                  onDelete={canDelete && !mandatory ? () => void askDelete(r) : undefined}
                   deleting={remove.isPending}
                 />
               ))}
@@ -244,12 +253,14 @@ function AttendanceRow({
   onMark,
   onDelete,
   deleting,
+  showDeleteColumn,
 }: {
   row: RosterRow
   showSession: boolean
   busy: boolean
   onMark: (s: 'present' | 'absent' | 'clear') => void
-  /** Present only for admins who manage the event (and never for mandatory events). */
+  /** Super admins only, and never for mandatory events. */
+  showDeleteColumn?: boolean
   onDelete?: () => void
   deleting?: boolean
 }) {
@@ -297,6 +308,10 @@ function AttendanceRow({
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
           )}
+        </div>
+      </td>
+      {showDeleteColumn && (
+        <td className="w-10 text-right">
           {onDelete && (
             <button
               type="button"
@@ -304,13 +319,13 @@ function AttendanceRow({
               onClick={onDelete}
               aria-label={`Delete ${row.full_name}'s registration`}
               title="Delete registration"
-              className="p-1 rounded text-ink/40 hover:text-comic-red-deep hover:bg-comic-red-deep/10 disabled:opacity-40"
+              className="p-1.5 rounded-lg text-ink/40 hover:text-comic-red-deep hover:bg-comic-red-deep/10 disabled:opacity-40"
             >
-              <Trash2 className="w-3.5 h-3.5" />
+              <Trash2 className="w-4 h-4" />
             </button>
           )}
-        </div>
-      </td>
+        </td>
+      )}
     </tr>
   )
 }
