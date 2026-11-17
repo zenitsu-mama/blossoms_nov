@@ -241,6 +241,25 @@ export async function updateEvent(id: string, patch: EventPatch): Promise<void> 
   if (!data || data.length === 0) throw new Error('Not saved: you do not have permission to edit this event.')
 }
 
+// ── Student lookup (on-spot registration preview) ────────────────────────────
+export interface StudentPreview {
+  register_number: string
+  full_name: string
+  class_name: string | null
+  phone: string | null
+  student_status: string
+}
+
+export async function lookupStudents(registerNumbers: string[]): Promise<StudentPreview[]> {
+  if (!registerNumbers.length) return []
+  const { data, error } = await supabase
+    .from('students')
+    .select('register_number, full_name, class_name, phone, student_status')
+    .in('register_number', registerNumbers)
+  if (error) throw new Error(error.message)
+  return (data ?? []) as StudentPreview[]
+}
+
 // ── Event heads (student contacts shown on the event page) ───────────────────
 export interface HeadInput {
   id?: string

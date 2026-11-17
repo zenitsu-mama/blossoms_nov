@@ -3,12 +3,13 @@ import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { Check, X, RotateCcw, UserPlus, Plus, Trash2 } from 'lucide-react'
+import { Check, X, RotateCcw, UserPlus, Plus, Trash2, Download } from 'lucide-react'
+import { downloadCsv, toCsv } from '@/lib/csv'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
-import { getEventRoster, markAttendance, spotRegister, type RosterRow, type SpotEntry } from '@/lib/api/admin'
+import { getEventRoster, lookupStudents, markAttendance, spotRegister, type RosterRow, type SpotEntry, type StudentPreview } from '@/lib/api/admin'
 import { formatTime } from '@/lib/eventDisplay'
 import { cn } from '@/lib/utils'
 import type { Event } from '@/types'
@@ -68,6 +69,27 @@ export default function AdminAttendance() {
   const absent = roster.filter((r) => r.attendance_status === 'absent').length
   const unmarked = roster.length - present - absent
   const mandatory = roster[0]?.registration_status === 'mandatory'
+
+  // Sign-in sheet: everyone present (for mandatory events, everyone not marked absent), in the chosen session.
+  const presentRows = roster
+    .filter((r) => (mandatory ? r.attendance_status !== 'absent' : r.attendance_status === 'present'))
+    .filter((r) => session === 'all' || (session === 'none' ? !r.session_starts_at : r.session_starts_at === session))
+    .sort((a, b) => (a.team_name ?? '').localeCompare(b.team_name ?? '') || a.full_name.localeCompare(b.full_name))
+
+  function exportPresent() {
+    const csv = toCsv<RosterRow>(presentRows, [
+      { header: 'No.', value: (r) => presentRows.indexOf(r) + 1 },
+      { header: 'Name', value: (r) => r.full_name },
+      { header: 'Register no.', value: (r) => r.register_number },
+      { header: 'Class', value: (r) => r.class_name },
+      ...(roster.some((r) => r.team_name) ? [{ header: 'Team', value: (r: RosterRow) => r.team_name }] : []),
+      { header: 'Phone', value: (r) => r.phone },
+      ...(showSessions ? [{ header: 'Session', value: (r: RosterRow) => (r.session_starts_at ? formatTime(r.session_starts_at).toUpperCase() : '') }] : []),
+      { header: 'Sign', value: () => '' },
+    ])
+    const name = (selectedEvent?.slug ?? 'event') + (session !== 'all' && session !== 'none' ? `-${formatTime(session).replace(/\W+/g, '')}` : '')
+    downloadCsv(`present-${name}.csv`, csv)
+  }
 
   function markRest(status: 'present' | 'absent') {
     const ids = roster.filter((r) => !r.attendance_status).map((r) => r.student_id)
@@ -143,6 +165,9 @@ export default function AdminAttendance() {
               <span className="font-semibold text-ink/60 tabular-nums">
                 {unmarked} {mandatory ? 'unmarked (counted present)' : 'unmarked'}
               </span>
+              <Button size="sm" variant="outline" onClick={exportPresent} disabled={!presentRows.length} title="Present students with a Sign column, as a CSV">
+                <Download className="w-4 h-4" /> Present list ({presentRows.length})
+              </Button>
               {unmarked > 0 && !mandatory && canEdit && (
                 <>
                   <Button size="sm" variant="outline" onClick={() => markRest('present')} disabled={mark.isPending}>
@@ -253,6 +278,30 @@ function AttendanceRow({
 
 const EMPTY_ROW: SpotEntry = { register_number: '', phone: '' }
 
+/** Line under an on-spot row: who the register number belongs to and whether a phone is still needed. */
+function StudentHint({ number, student, looking, phoneTyped }: { number: string; student?: StudentPreview; looking: boolean; phoneTyped: boolean }) {
+  if (!/^\d{7,}$/.test(number)) return null
+  if (!student) {
+    return <p className="text-xs mt-1 text-ink/60" role="status">{looking ? 'Looking up…' : <span className="font-semibold text-comic-red-deep">No student with this register number</span>}</p>
+  }
+  const inactive = student.student_status !== 'active'
+  return (
+    <p className="text-xs mt-1" role="status">
+      <span className="font-semibold">{student.full_name}</span>
+      {student.class_name && <span className="text-ink/60"> · {student.class_name}</span>}
+      {inactive && <span className="font-semibold text-comic-red-deep"> · Not an active student</span>}
+      {' · '}
+      {student.phone ? (
+        <span className="text-blossoms-green font-semibold">Phone on file: {student.phone}</span>
+      ) : phoneTyped ? (
+        <span className="text-ink/60">Phone will be saved to their profile</span>
+      ) : (
+        <span className="font-semibold text-comic-red-deep">No phone on file: enter one</span>
+      )}
+    </p>
+  )
+}
+
 /**
  * On-spot registration for students who turn up without registering online. Registers them (as one team when a
  * team name is given) and marks them present. Deadline, seat limit, clashes and team size don't apply, but every
@@ -287,6 +336,16 @@ function SpotRegisterPanel({ event, onDone }: { event: Event; onDone: () => void
   })
 
   const setRow = (i: number, patch: Partial<SpotEntry>) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)))
+
+  // Look students up as their register numbers are typed: name, class, and whether a phone is on file.
+  const typed = [...new Set(rows.map((r) => r.register_number.trim()).filter((n) => /^\d{7,}$/.test(n)))].sort()
+  const { data: found = [], isFetching: looking } = useQuery({
+    queryKey: ['spot-lookup', typed],
+    queryFn: () => lookupStudents(typed),
+    enabled: typed.length > 0,
+    staleTime: 30_000,
+  })
+  const byNumber = new Map(found.map((s) => [s.register_number, s]))
 
   if (!open) {
     return (
@@ -334,7 +393,8 @@ function SpotRegisterPanel({ event, onDone }: { event: Event; onDone: () => void
         )}
 
         {rows.map((r, i) => (
-          <div key={i} className="flex flex-wrap items-end gap-2">
+          <div key={i}>
+          <div className="flex flex-wrap items-end gap-2">
             <div className="w-40">
               <Input
                 label={i === 0 && teamName.trim() ? 'Register no. (leader)' : 'Register no.'}
@@ -356,6 +416,8 @@ function SpotRegisterPanel({ event, onDone }: { event: Event; onDone: () => void
                 <Trash2 className="w-4 h-4" />
               </button>
             )}
+          </div>
+          <StudentHint number={r.register_number.trim()} student={byNumber.get(r.register_number.trim())} looking={looking} phoneTyped={Boolean(r.phone?.trim())} />
           </div>
         ))}
 
