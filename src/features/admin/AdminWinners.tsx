@@ -7,8 +7,9 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { getEventEntrants, getWinnersForEvent, setWinners, type Entrant } from '@/lib/api/admin'
 import { EventSelect, Muted, PageHeader, Panel, selectClass, useEventAccess, ViewOnlyNote } from './AdminUI'
 
-const PLACES = [1, 2, 3]
-const PLACE_NAME = ['', 'First', 'Second', 'Third']
+/** Events have a first and second place only (migration 029). */
+const PLACES = [1, 2]
+const PLACE_NAME = ['', 'First', 'Second']
 const keyOf = (e: { team_id?: string | null; student_id?: string | null }) => (e.team_id ? `t:${e.team_id}` : e.student_id ? `s:${e.student_id}` : '')
 
 /** Picks per place. A place can hold more than one entry when the judges declare a tie. */
@@ -48,6 +49,7 @@ export default function AdminWinners() {
       return setWinners(eventId, winners, notify)
     },
     onSuccess: (res) => {
+      if (res.success === false) return toast.error(res.message ?? 'Could not publish the results.')
       toast.success(res.count ? `${res.count} winners published` : 'Winners cleared')
       queryClient.invalidateQueries({ queryKey: ['admin-winners', eventId] })
       queryClient.invalidateQueries({ queryKey: ['public-winners'] })
@@ -62,7 +64,7 @@ export default function AdminWinners() {
     <div className="space-y-6">
       <PageHeader
         title="Winners"
-        description="Declare first, second and third place. For a tie, add more than one winner to a place. Results appear on the public Results page and registered students are notified."
+        description="Declare first and second place. For a tie, add more than one winner to a place. Results appear on the public Results page and registered students are notified."
       />
       <div className="max-w-md">
         <EventSelect value={eventId} onChange={(id) => { setEventId(id); setPicks({}) }} />

@@ -88,8 +88,8 @@ function Person({ w }: { w: PublicWinner }) {
 }
 
 /**
- * One event as a panel on the comic page. It reads like a page: the panel lands, third and second
- * place appear in caption boxes, then first place bursts in with the winner speaking.
+ * One event as a panel on the comic page. It reads like a page: the panel lands, second place appears
+ * in a caption box, then first place bursts in with the winner speaking. There is no third place.
  */
 function ResultPanel({ list }: { list: PublicWinner[] }) {
   const { ref, shown, replay } = useReveal()
@@ -127,7 +127,7 @@ function ResultPanel({ list }: { list: PublicWinner[] }) {
         )}
 
         <div className="result-runners">
-          {[3, 2].map((place) =>
+          {[2].map((place) =>
             at(place).length === 0 ? null : (
               <div key={place} className={`result-runner result-runner--${place}`}>
                 <span className="result-runner-tag">

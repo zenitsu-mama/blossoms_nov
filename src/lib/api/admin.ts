@@ -366,7 +366,7 @@ export const setWinners = (
   eventId: string,
   winners: { position: number; student_id?: string; team_id?: string; description?: string }[],
   notify = true
-) => rpc<{ success: boolean; count: number }>('admin_set_winners', { p_event_id: eventId, p_winners: winners, p_notify: notify })
+) => rpc<{ success: boolean; count: number; message?: string }>('admin_set_winners', { p_event_id: eventId, p_winners: winners, p_notify: notify })
 
 // ── Announcements & notifications ─────────────────────────────────────────────
 export async function listAllAnnouncements(): Promise<Announcement[]> {
