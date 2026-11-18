@@ -19,6 +19,12 @@
       ],
       "port": 3001,
       "url": "http://127.0.0.1:3001"
+    },
+    {
+      "name": "dist-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "preview", "--port", "4173", "--strictPort"],
+      "port": 4173
     }
   ]
 }
