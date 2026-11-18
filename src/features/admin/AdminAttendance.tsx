@@ -339,7 +339,7 @@ function AttendanceRow({
 
 const EMPTY_ROW: SpotEntry = { register_number: '', phone: '' }
 
-/** Line under an on-spot row: who the register number belongs to and whether a phone is still needed. */
+/** Line under an on-spot row: who the register number belongs to and whether a phone is on file. */
 function StudentHint({ number, student, looking, phoneTyped }: { number: string; student?: StudentPreview; looking: boolean; phoneTyped: boolean }) {
   if (!/^\d{7,}$/.test(number)) return null
   if (!student) {
@@ -357,7 +357,7 @@ function StudentHint({ number, student, looking, phoneTyped }: { number: string;
       ) : phoneTyped ? (
         <span className="text-ink/60">Phone will be saved to their profile</span>
       ) : (
-        <span className="font-semibold text-comic-red-deep">No phone on file: enter one</span>
+        <span className="text-ink/60">No phone on file (optional)</span>
       )}
     </p>
   )
@@ -365,8 +365,8 @@ function StudentHint({ number, student, looking, phoneTyped }: { number: string;
 
 /**
  * On-spot registration for students who turn up without registering online. Registers them (as one team when a
- * team name is given) and marks them present. Deadline, seat limit, clashes and team size don't apply, but every
- * student needs a phone number on file: enter one for anyone who hasn't added theirs.
+ * team name is given) and marks them present. Deadline, seat limit, clashes and team size don't apply. A phone
+ * number is optional: one typed here is saved to the student's profile.
  */
 function SpotRegisterPanel({ event, onDone }: { event: Event; onDone: () => void }) {
   const [open, setOpen] = useState(false)
@@ -420,7 +420,7 @@ function SpotRegisterPanel({ event, onDone }: { event: Event; onDone: () => void
     <Panel title="On-spot registration">
       <p className="text-sm text-ink/60 -mt-2 mb-4">
         For students who turned up without registering. They are registered and marked present. The deadline, seat limit, time
-        clashes and team size don't apply. Add a phone number for anyone who hasn't added one to their profile.
+        clashes and team size don't apply. A phone number is optional.
       </p>
       <form
         onSubmit={(e) => {
@@ -465,7 +465,7 @@ function SpotRegisterPanel({ event, onDone }: { event: Event; onDone: () => void
               />
             </div>
             <div className="w-48">
-              <Input label="Phone (if not on file)" value={r.phone ?? ''} inputMode="tel" onChange={(e) => setRow(i, { phone: e.target.value })} />
+              <Input label="Phone (optional)" value={r.phone ?? ''} inputMode="tel" onChange={(e) => setRow(i, { phone: e.target.value })} />
             </div>
             {rows.length > 1 && (
               <button

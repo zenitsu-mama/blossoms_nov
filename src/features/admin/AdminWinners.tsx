@@ -1,18 +1,22 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { Trophy } from 'lucide-react'
+import { Plus, Trophy, X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { getEventEntrants, getWinnersForEvent, setWinners, type Entrant } from '@/lib/api/admin'
 import { EventSelect, Muted, PageHeader, Panel, selectClass, useEventAccess, ViewOnlyNote } from './AdminUI'
 
 const PLACES = [1, 2, 3]
+const PLACE_NAME = ['', 'First', 'Second', 'Third']
 const keyOf = (e: { team_id?: string | null; student_id?: string | null }) => (e.team_id ? `t:${e.team_id}` : e.student_id ? `s:${e.student_id}` : '')
+
+/** Picks per place. A place can hold more than one entry when the judges declare a tie. */
+type Picks = Record<number, string[]>
 
 export default function AdminWinners() {
   const [eventId, setEventId] = useState('')
-  const [picks, setPicks] = useState<Record<number, string>>({})
+  const [picks, setPicks] = useState<Picks>({})
   const [notify, setNotify] = useState(true)
   const queryClient = useQueryClient()
   const canEdit = useEventAccess().canManage(eventId)
@@ -22,17 +26,25 @@ export default function AdminWinners() {
 
   useEffect(() => {
     if (!current.data) return
-    const next: Record<number, string> = {}
-    for (const w of current.data) next[w.position] = keyOf(w)
+    const next: Picks = {}
+    for (const w of current.data) next[w.position] = [...(next[w.position] ?? []), keyOf(w)]
     setPicks(next)
   }, [current.data])
 
+  const slotsFor = (p: number) => (picks[p]?.length ? picks[p] : [''])
+  const setSlot = (p: number, i: number, value: string) =>
+    setPicks((all) => ({ ...all, [p]: slotsFor(p).map((v, j) => (j === i ? value : v)) }))
+  const addSlot = (p: number) => setPicks((all) => ({ ...all, [p]: [...slotsFor(p), ''] }))
+  const removeSlot = (p: number, i: number) => setPicks((all) => ({ ...all, [p]: slotsFor(p).filter((_, j) => j !== i) }))
+
   const save = useMutation({
     mutationFn: () => {
-      const winners = PLACES.filter((p) => picks[p]).map((p) => {
-        const [kind, id] = picks[p].split(':')
-        return kind === 't' ? { position: p, team_id: id } : { position: p, student_id: id }
-      })
+      const winners = PLACES.flatMap((p) =>
+        (picks[p] ?? []).filter(Boolean).map((key) => {
+          const [kind, id] = key.split(':')
+          return kind === 't' ? { position: p, team_id: id } : { position: p, student_id: id }
+        })
+      )
       return setWinners(eventId, winners, notify)
     },
     onSuccess: (res) => {
@@ -43,12 +55,15 @@ export default function AdminWinners() {
     onError: (e: Error) => toast.error(e.message),
   })
 
-  const chosen = Object.values(picks).filter(Boolean)
+  const chosen = PLACES.flatMap((p) => picks[p] ?? []).filter(Boolean)
   const duplicate = new Set(chosen).size !== chosen.length
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Winners" description="Declare first, second and third place. Results appear on the public Results page and registered students are notified." />
+      <PageHeader
+        title="Winners"
+        description="Declare first, second and third place. For a tie, add more than one winner to a place. Results appear on the public Results page and registered students are notified."
+      />
       <div className="max-w-md">
         <EventSelect value={eventId} onChange={(id) => { setEventId(id); setPicks({}) }} />
       </div>
@@ -66,28 +81,60 @@ export default function AdminWinners() {
           <form
             onSubmit={(e) => {
               e.preventDefault()
-              if (duplicate) return toast.error('The same entry is picked for two places.')
+              if (duplicate) return toast.error('The same entry is picked more than once.')
               save.mutate()
             }}
-            className="space-y-4"
+            className="space-y-5"
           >
-            {PLACES.map((p) => (
-              <label key={p} className="flex flex-col gap-1 text-sm font-semibold">
-                <span className="flex items-center gap-1.5">
-                  <Trophy className={p === 1 ? 'w-4 h-4 text-blossoms-yellow' : 'w-4 h-4 text-ink/40'} aria-hidden="true" />
-                  {p === 1 ? 'First' : p === 2 ? 'Second' : 'Third'} place
-                </span>
-                <select value={picks[p] ?? ''} onChange={(e) => setPicks({ ...picks, [p]: e.target.value })} className={selectClass}>
-                  <option value="">— None —</option>
-                  {entrants.data.map((en: Entrant) => (
-                    <option key={keyOf(en)} value={keyOf(en)}>
-                      {en.kind === 'team' ? `Team ${en.label}` : en.label}
-                      {en.detail ? ` — ${en.detail}` : ''}
-                    </option>
+            {PLACES.map((p) => {
+              const slots = slotsFor(p)
+              return (
+                <fieldset key={p} className="flex flex-col gap-1.5 text-sm font-semibold border-0 p-0 m-0 min-w-0">
+                  <legend className="flex items-center gap-1.5 mb-1">
+                    <Trophy className={p === 1 ? 'w-4 h-4 text-blossoms-yellow' : 'w-4 h-4 text-ink/40'} aria-hidden="true" />
+                    {PLACE_NAME[p]} place
+                    {slots.filter(Boolean).length > 1 && <span className="font-normal text-ink/60">· tie, {slots.filter(Boolean).length} winners</span>}
+                  </legend>
+                  {slots.map((value, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <select
+                        value={value}
+                        onChange={(e) => setSlot(p, i, e.target.value)}
+                        className={`${selectClass} flex-1 min-w-0`}
+                        aria-label={`${PLACE_NAME[p]} place${slots.length > 1 ? `, winner ${i + 1}` : ''}`}
+                      >
+                        <option value="">— None —</option>
+                        {entrants.data.map((en: Entrant) => (
+                          <option key={keyOf(en)} value={keyOf(en)}>
+                            {en.kind === 'team' ? `Team ${en.label}` : en.label}
+                            {en.detail ? ` — ${en.detail}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                      {slots.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeSlot(p, i)}
+                          aria-label={`Remove this ${PLACE_NAME[p].toLowerCase()} place winner`}
+                          className="p-1.5 text-ink/50 hover:text-comic-red-deep"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   ))}
-                </select>
-              </label>
-            ))}
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => addSlot(p)}
+                      className="self-start inline-flex items-center gap-1 text-xs font-bold text-ink/70 hover:text-ink hover:underline"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add another {PLACE_NAME[p].toLowerCase()} place winner (tie)
+                    </button>
+                  )}
+                </fieldset>
+              )
+            })}
             <label className="flex items-center gap-2 text-sm font-semibold">
               <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} className="w-4 h-4 accent-[var(--color-primary)]" />
               Notify everyone registered for this event
