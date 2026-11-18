@@ -134,7 +134,19 @@ function RegistrationCard({ reg, clash, onCancel, cancelling }: { reg: MyRegistr
   const chosen = chosenSlot(reg.event, reg.slot_id)
   const slot = slotOf(reg)
   const active = reg.registration_status !== 'cancelled'
-  const canCancel = active && (!reg.team || reg.team.is_leader)
+  // Cancelling is allowed only within 24 hours of registering and while registration is open (the database checks this too).
+  const isOwner = active && (!reg.team || reg.team.is_leader)
+  const windowEnds = new Date(new Date(reg.registered_at).getTime() + 24 * 3600 * 1000)
+  const cancelBlocked = !reg.event
+    ? 'closed'
+    : reg.event.cancellation_allowed === false
+      ? 'not allowed'
+      : !registrationState(reg.event).open
+        ? 'closed'
+        : Date.now() > windowEnds.getTime()
+          ? 'window'
+          : null
+  const canCancel = isOwner && !cancelBlocked
   const canSwitch = multi && active && (!reg.team || reg.team.is_leader) && Boolean(reg.event && registrationState(reg.event).open)
 
   const switchSession = useMutation({
@@ -242,6 +254,18 @@ function RegistrationCard({ reg, clash, onCancel, cancelling }: { reg: MyRegistr
           >
             {reg.team ? 'Withdraw team' : 'Cancel registration'}
           </Button>
+        )}
+        {canCancel && (
+          <p className="text-xs text-ink/50 self-center">You can cancel until {formatDateTime(windowEnds.toISOString())}.</p>
+        )}
+        {isOwner && cancelBlocked && (
+          <p className="text-xs text-ink/50 self-center">
+            {cancelBlocked === 'window'
+              ? 'Registrations can only be cancelled within 24 hours of registering.'
+              : cancelBlocked === 'not allowed'
+                ? 'Cancellations are not allowed for this event.'
+                : 'Registration has closed, so this entry can no longer be cancelled.'}
+          </p>
         )}
         {active && reg.team && !reg.team.is_leader && (
           <p className="text-xs text-ink/50 self-center">Only your team leader can withdraw this entry.</p>
