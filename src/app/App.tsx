@@ -1,8 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { Suspense, lazy, useEffect } from 'react'
+import { Suspense, lazy, useEffect, useRef } from 'react'
 import { Toaster } from 'react-hot-toast'
 import { ConfirmHost } from '@/components/ui/ConfirmDialog'
+import { useAuth } from '@/lib/auth/authStore'
 import { isLocalDatabase } from '@/lib/supabase/client'
 
 // Layouts
@@ -102,11 +103,31 @@ function ScrollToTop() {
   return null
 }
 
+/**
+ * Cached data belongs to whoever was signed in when it loaded. When the signed-in person changes (sign out, sign in,
+ * or switching to another register number) drop all of it, so nobody ever sees the previous person's events.
+ */
+function AuthCacheReset() {
+  const { ready, student, admin } = useAuth()
+  const who = !ready ? null : student ? `s:${student.id}` : admin ? `a:${admin.id}` : 'anon'
+  const last = useRef<string | null>(null)
+  useEffect(() => {
+    if (who === null) return
+    if (last.current !== null && last.current !== who) {
+      void queryClient.cancelQueries()
+      queryClient.clear()
+    }
+    last.current = who
+  }, [who])
+  return null
+}
+
 export default function App() {
   usePrefetchPublicData()
 
   return (
     <QueryClientProvider client={queryClient}>
+      <AuthCacheReset />
       <BrowserRouter>
         <ScrollToTop />
         <Suspense fallback={<PageFallback />}>

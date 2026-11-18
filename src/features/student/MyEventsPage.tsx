@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/lib/auth/authStore'
 import { SessionPicker } from '@/components/events/SessionPicker'
 import { registrationState } from '@/lib/api/events'
 import { getStudentRegistrations, cancelRegistration, changeSession, type MyRegistration } from '@/lib/api/registration'
@@ -51,24 +52,38 @@ function findClashes(registrations: MyRegistration[]): Set<string> {
 
 export default function MyEventsPage() {
   const [filter, setFilter] = useState<Filter>('active')
+  const { student } = useAuth()
   const queryClient = useQueryClient()
 
-  const { data: registrations = [], isLoading, isError, refetch } = useQuery({
-    queryKey: ['my-registrations'],
+  const { data: registrations = [], isLoading, isError, refetch, isFetching } = useQuery({
+    queryKey: ['my-registrations', student?.id],
     queryFn: getStudentRegistrations,
   })
 
   const cancelMutation = useMutation({
     mutationFn: (id: string) => cancelRegistration(id),
-    onSuccess: (res) => {
+    onSuccess: (res, id) => {
       if (res.success) {
         toast.success(res.message)
-        queryClient.invalidateQueries()
+        // Take the card off the list at once (a team withdrawal cancels every member's row), so it can't be
+        // tapped again and the list doesn't jump under the student's finger when the reload lands.
+        const cancelled = registrations.find((r) => r.id === id)
+        queryClient.setQueryData<MyRegistration[]>(['my-registrations', student?.id], (old) =>
+          old?.map((r) =>
+            r.id === id || (cancelled?.team && r.team?.team_name === cancelled.team.team_name && r.event?.id === cancelled.event?.id)
+              ? { ...r, registration_status: 'cancelled' }
+              : r
+          )
+        )
       } else {
         toast.error(res.message)
       }
+      void queryClient.invalidateQueries()
     },
+    onError: (e: Error) => toast.error(e.message),
   })
+  // No cancelling while one is in flight or the list is reloading: the cards may be about to move.
+  const cancelLocked = cancelMutation.isPending || isFetching
 
   const clashes = findClashes(registrations)
   const filtered = registrations
@@ -120,7 +135,10 @@ export default function MyEventsPage() {
       ) : (
         <ul className="space-y-4" aria-label="Your registrations">
           {filtered.map((reg) => (
-            <RegistrationCard key={reg.id} reg={reg} clash={clashes.has(reg.id)} onCancel={() => cancelMutation.mutate(reg.id)} cancelling={cancelMutation.isPending} />
+            <RegistrationCard key={reg.id} reg={reg} clash={clashes.has(reg.id)} onCancel={() => !cancelLocked && cancelMutation.mutate(reg.id)}
+              cancelling={cancelMutation.isPending && cancelMutation.variables === reg.id}
+              locked={cancelLocked}
+            />
           ))}
         </ul>
       )}
@@ -128,7 +146,20 @@ export default function MyEventsPage() {
   )
 }
 
-function RegistrationCard({ reg, clash, onCancel, cancelling }: { reg: MyRegistration; clash: boolean; onCancel: () => void; cancelling: boolean }) {
+function RegistrationCard({
+  reg,
+  clash,
+  onCancel,
+  cancelling,
+  locked,
+}: {
+  reg: MyRegistration
+  clash: boolean
+  onCancel: () => void
+  cancelling: boolean
+  /** Another cancel is in flight or the list is reloading. */
+  locked: boolean
+}) {
   const queryClient = useQueryClient()
   const multi = hasSessions(reg.event)
   const chosen = chosenSlot(reg.event, reg.slot_id)
@@ -247,6 +278,7 @@ function RegistrationCard({ reg, clash, onCancel, cancelling }: { reg: MyRegistr
             variant="ghost"
             className="text-comic-red-deep"
             isLoading={cancelling}
+            disabled={locked}
             onClick={() => {
               const msg = reg.team ? `Withdraw team ${reg.team.team_name} from ${reg.event?.title}? Every member is removed.` : `Cancel your registration for ${reg.event?.title}?`
               void confirmDialog(msg, { danger: true, title: reg.team ? 'Withdraw team' : 'Cancel registration', confirmLabel: reg.team ? 'Withdraw team' : 'Cancel registration', cancelLabel: 'Keep it' }).then((ok) => ok && onCancel())

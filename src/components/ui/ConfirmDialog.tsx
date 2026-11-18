@@ -1,4 +1,5 @@
-import { useSyncExternalStore } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
+import { cn } from '@/lib/utils'
 import * as Dialog from '@radix-ui/react-dialog'
 import { Button } from './Button'
 
@@ -39,6 +40,9 @@ function close(ok: boolean) {
   p?.resolve(ok)
 }
 
+/** A dangerous confirm ignores taps this soon after the dialog opens: they were aimed at the page behind it. */
+const ARM_DELAY_MS = 600
+
 export function ConfirmHost() {
   const current = useSyncExternalStore(
     (l) => {
@@ -47,6 +51,13 @@ export function ConfirmHost() {
     },
     () => pending,
   )
+  const [armed, setArmed] = useState(false)
+  useEffect(() => {
+    setArmed(false)
+    if (!current) return
+    const t = setTimeout(() => setArmed(true), current.danger ? ARM_DELAY_MS : 0)
+    return () => clearTimeout(t)
+  }, [current])
 
   return (
     <Dialog.Root open={!!current} onOpenChange={(open) => !open && close(false)}>
@@ -58,10 +69,17 @@ export function ConfirmHost() {
           <Dialog.Title className="font-display text-2xl text-ink">{current?.title ?? 'Are you sure?'}</Dialog.Title>
           <Dialog.Description className="mt-2 text-sm text-ink/80">{current?.message}</Dialog.Description>
           <div className="mt-6 flex flex-wrap justify-end gap-3">
-            <Button variant="outline" onClick={() => close(false)}>
+            {/* Dangerous actions start on the safe button, so Enter or a stray tap never confirms them. */}
+            <Button variant="outline" onClick={() => close(false)} autoFocus={!!current?.danger}>
               {current?.cancelLabel ?? 'Cancel'}
             </Button>
-            <Button variant={current?.danger ? 'danger' : 'primary'} onClick={() => close(true)} autoFocus>
+            <Button
+              variant={current?.danger ? 'danger' : 'primary'}
+              onClick={() => armed && close(true)}
+              aria-disabled={!armed}
+              className={cn(!armed && 'opacity-60')}
+              autoFocus={!current?.danger}
+            >
               {current?.confirmLabel ?? 'Confirm'}
             </Button>
           </div>

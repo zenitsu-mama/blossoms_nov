@@ -19,7 +19,7 @@ export default function StudentDashboard() {
   const { student } = useAuth()
   const queryClient = useQueryClient()
   const { data: registrations = [], isLoading } = useQuery({
-    queryKey: ['my-registrations'],
+    queryKey: ['my-registrations', student?.id],
     queryFn: getStudentRegistrations,
   })
   const { data: notifications = [] } = useQuery({ queryKey: ['notifications'], queryFn: getMyNotifications })

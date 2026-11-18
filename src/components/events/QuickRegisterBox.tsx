@@ -37,7 +37,7 @@ function RegisterBoxInner({ event, onRegistered }: { event: Event; onRegistered:
   const returnTo = `/events?event=${event.slug}`
 
   const { data: mine = [] } = useQuery({
-    queryKey: ['my-registrations'],
+    queryKey: ['my-registrations', auth.student?.id],
     queryFn: getStudentRegistrations,
     enabled: Boolean(auth.student),
   })
