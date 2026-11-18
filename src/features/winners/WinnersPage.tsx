@@ -1,12 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { RotateCcw, Sparkles } from 'lucide-react'
 import { DisplayText, ComicPanel, ComicCaptionBox } from '@/components/comic/ComicPrimitives'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase/client'
-import { getFestSettings, getTeamLeaderboard, type TeamStanding } from '@/lib/api/admin'
-import { useAuth } from '@/lib/auth/authStore'
 import { PowerTabs } from './PowerTabs'
 import './winners.css'
 
@@ -32,23 +30,23 @@ async function getPublicWinners(): Promise<PublicWinner[]> {
 const PLACE = ['', '1st', '2nd', '3rd']
 
 const TABS = [
-  { key: 'arts', label: 'Art' },
-  { key: 'literature', label: 'Literary' },
-  { key: 'stage', label: 'Stage' },
-  { key: 'theatre', label: 'Theatre' },
+  { key: 'arts', label: 'Art', match: /^art/ },
+  { key: 'literature', label: 'Literary', match: /^litera/ },
+  { key: 'stage', label: 'Stage', match: /^stage/ },
+  { key: 'theatre', label: 'Theatre', match: /^theat/ },
 ] as const
 
-type TabKey = (typeof TABS)[number]['key'] | 'other'
+type TabKey = (typeof TABS)[number]['key']
 
-function categoryKey(category: string): TabKey {
-  const c = category.toLowerCase()
-  for (const t of TABS) if (c.includes(t.key)) return t.key
-  return 'other'
+/** The tab a category name belongs to ("Art", "Literary", …). Other categories are not shown. */
+function categoryKey(category: string): TabKey | null {
+  const c = category.trim().toLowerCase()
+  return TABS.find((t) => t.match.test(c))?.key ?? null
 }
 
 function categoryClass(category: string) {
   const key = categoryKey(category)
-  return key === 'other' ? '' : `result-panel--${key}`
+  return key ? `result-panel--${key}` : ''
 }
 
 /** True once the element has scrolled into view; replay() runs the reveal again. */
@@ -148,54 +146,6 @@ function ResultPanel({ list }: { list: PublicWinner[] }) {
   )
 }
 
-/** The four team totals. Renders nothing while the standings are switched off. */
-function TeamStandings() {
-  const { data: teams = [] } = useQuery({
-    queryKey: ['team-leaderboard'],
-    queryFn: () => (isSupabaseConfigured ? getTeamLeaderboard() : Promise.resolve([] as TeamStanding[])),
-  })
-  // Admins always get the standings back; tell them when visitors can't see them.
-  const isAdmin = Boolean(useAuth().admin)
-  const { data: settings } = useQuery({
-    queryKey: ['fest-settings'],
-    queryFn: getFestSettings,
-    enabled: isAdmin && isSupabaseConfigured,
-  })
-  if (teams.length === 0) return null
-  const ranked = [...teams].sort((a, b) => b.points - a.points)
-  const top = Math.max(1, ...ranked.map((t) => t.points))
-  const hiddenFromPublic = isAdmin && settings?.leaderboard_public === false
-  return (
-    <section aria-labelledby="team-standings" className="comic-card p-5 bg-white space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="team-standings" className="font-display text-2xl text-ink">Team standings</h2>
-        {hiddenFromPublic && (
-          <Link to="/admin/points" className="rounded-full border-2 border-ink bg-[#FFD43B] px-3 py-1 text-xs font-bold text-ink hover:underline">
-            Admin preview · hidden from visitors
-          </Link>
-        )}
-      </div>
-      <ol className="space-y-2">
-        {ranked.map((t, i) => (
-          <li key={t.team_id} className="flex items-center gap-3">
-            <span className="w-6 font-display text-xl text-ink tabular-nums">{i + 1}</span>
-            <span className="h-4 w-4 rounded-full border-2 border-ink shrink-0" style={{ background: t.color }} aria-hidden="true" />
-            <div className="flex-1 min-w-0">
-              <div className="flex justify-between text-sm font-bold text-ink">
-                <span className="truncate">{t.name}</span>
-                <span className="tabular-nums">{t.points.toLocaleString()} pts</span>
-              </div>
-              <div className="mt-1 h-3 rounded-full border-2 border-ink bg-paper overflow-hidden">
-                <div className="h-full" style={{ width: `${(t.points / top) * 100}%`, background: t.color }} />
-              </div>
-            </div>
-          </li>
-        ))}
-      </ol>
-    </section>
-  )
-}
-
 export default function WinnersPage() {
   const { data: winners = [], isLoading } = useQuery({ queryKey: ['public-winners'], queryFn: getPublicWinners })
   const [searchParams, setSearchParams] = useSearchParams()
@@ -206,12 +156,10 @@ export default function WinnersPage() {
   const byTab = new Map<TabKey, PublicWinner[][]>()
   for (const list of byEvent.values()) {
     const key = categoryKey(list[0].category)
-    byTab.set(key, [...(byTab.get(key) ?? []), list])
+    if (key) byTab.set(key, [...(byTab.get(key) ?? []), list])
   }
 
-  // "Other" only shows up if some result doesn't belong to the four categories.
-  const tabs: { key: TabKey; label: string }[] = [...TABS]
-  if (byTab.has('other')) tabs.push({ key: 'other', label: 'Other' })
+  const tabs: { key: TabKey; label: string }[] = TABS.map(({ key, label }) => ({ key, label }))
 
   const requested = searchParams.get('category') as TabKey | null
   const active: TabKey =
@@ -235,8 +183,6 @@ export default function WinnersPage() {
         </div>
         <ComicCaptionBox>BLOSSOMS 2026–27</ComicCaptionBox>
       </div>
-
-      <TeamStandings />
 
       <PowerTabs
         tabs={tabs}

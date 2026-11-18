@@ -1,4 +1,4 @@
-/* Category tabs as hand-sign medallions with a power effect on press. */
+/* Category tabs as badge medallions with a power effect on press. */
 .pw-stage {
   --pw: clamp(104px, 17vw, 160px);
   position: relative;
@@ -48,9 +48,9 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.pw-btn--arts { --glow: #7aa3ff; }
-.pw-btn--literature { --glow: #b4cdff; }
-.pw-btn--stage { --glow: #ffb347; }
+.pw-btn--arts { --glow: #ff8a8a; }
+.pw-btn--literature { --glow: #ffc06a; }
+.pw-btn--stage { --glow: #7aa3ff; }
 .pw-btn--theatre { --glow: #ff7a1a; }
 
 .pw-circle {
@@ -80,7 +80,7 @@
   50% { box-shadow: 0 0 0 5px var(--glow), 0 0 44px 14px var(--glow); }
 }
 
-/* the hand pokes out the top of its circle */
+/* the icon pokes out the top of its circle */
 .pw-stack {
   position: absolute;
   bottom: 0;
@@ -89,7 +89,7 @@
   aspect-ratio: 120 / 160;
 }
 
-.pw-hand { display: block; width: 100%; height: 100%; overflow: visible; }
+.pw-icon { display: block; width: 100%; height: 100%; overflow: visible; }
 
 .pw-label {
   padding: 2px 12px;
@@ -154,7 +154,7 @@
   100% { opacity: 0; transform: translateX(-50%) translateY(-18px) scale(1) rotate(-6deg); }
 }
 
-/* ARTS: a fingertip of paint goes off */
+/* ART: the brush tip goes off in paint */
 .pw-orb {
   left: 44%;
   top: 12%;
@@ -190,25 +190,25 @@
   100% { opacity: 0; transform: rotate(var(--a)) translateY(calc(var(--pw) * -0.62)) scale(1.5); }
 }
 
-.pw-hand--arts.pw-hand--go .pw-finger { animation: pwPoint 0.9s cubic-bezier(0.2, 1.6, 0.4, 1); }
+.pw-icon--arts.pw-icon--go .pw-part { animation: pwPoint 0.9s cubic-bezier(0.2, 1.6, 0.4, 1); }
 @keyframes pwPoint {
   30% { transform: translateY(-9px) scale(1.12); }
   60% { transform: translateY(2px); }
 }
 
-/* LITERATURE: fingers stretch like elastic */
-.pw-finger { transform-box: fill-box; transform-origin: 50% 100%; }
+/* LITERARY: the quill stretches like elastic */
+.pw-part { transform-box: fill-box; transform-origin: 50% 100%; }
 .pw-echo { opacity: 0; }
 
-.pw-hand--literature.pw-hand--go .pw-finger { animation: pwStretch 1.6s cubic-bezier(0.2, 1.3, 0.4, 1); }
-.pw-hand--literature.pw-hand--go .pw-echo { animation: pwEcho 1.6s ease-out; }
+.pw-icon--literature.pw-icon--go .pw-part { animation: pwStretch 1.6s cubic-bezier(0.2, 1.3, 0.4, 1); }
+.pw-icon--literature.pw-icon--go .pw-echo { animation: pwEcho 1.6s ease-out; }
 
 @keyframes pwStretch {
   0% { transform: scaleY(1); }
-  22% { transform: scaleY(2.7) skewX(-3deg); }
-  36% { transform: scaleY(2.3) skewX(4deg); }
-  50% { transform: scaleY(2.55) skewX(-2deg); }
-  78% { transform: scaleY(1.25); }
+  22% { transform: scaleY(1.6) skewX(-3deg); }
+  36% { transform: scaleY(1.4) skewX(4deg); }
+  50% { transform: scaleY(1.52) skewX(-2deg); }
+  78% { transform: scaleY(1.12); }
   100% { transform: scaleY(1); }
 }
 @keyframes pwEcho {
@@ -232,10 +232,10 @@
   100% { opacity: 0; transform: translateX(40%) scaleX(1.4); }
 }
 
-/* STAGE: a rocky hand slams: shake, cracks, shockwave, debris */
+/* STAGE: the mic slams: shake, cracks, shockwave, debris */
 .pw-crack { stroke-dasharray: 60; stroke-dashoffset: 60; opacity: 0; }
-.pw-hand--stage.pw-hand--go { animation: pwShake 0.7s linear; }
-.pw-hand--stage.pw-hand--go .pw-crack { opacity: 1; animation: pwCrack 0.5s ease-out 0.15s forwards; }
+.pw-icon--stage.pw-icon--go { animation: pwShake 0.7s linear; }
+.pw-icon--stage.pw-icon--go .pw-crack { opacity: 1; animation: pwCrack 0.5s ease-out 0.15s forwards; }
 
 @keyframes pwShake {
   0%, 100% { transform: translate(0, 0); }
@@ -279,13 +279,13 @@
   100% { opacity: 0; transform: rotate(var(--a)) translateY(calc(var(--d) * -1.5)) rotate(220deg); }
 }
 
-/* THEATRE: flames lick up the hand */
+/* THEATRE: flames blaze up behind the masks */
 .pw-flame { transform-box: fill-box; transform-origin: 50% 100%; animation: pwFlicker 1.1s ease-in-out infinite; }
 @keyframes pwFlicker {
   0%, 100% { transform: scaleY(0.92) scaleX(1); }
   50% { transform: scaleY(1.08) scaleX(0.94); }
 }
-.pw-hand--theatre.pw-hand--go .pw-flame { animation: pwBlaze 1.6s ease-out; }
+.pw-icon--theatre.pw-icon--go .pw-flame { animation: pwBlaze 1.6s ease-out; }
 @keyframes pwBlaze {
   0% { transform: scaleY(0.9); }
   20% { transform: scaleY(1.6) scaleX(1.15); }
