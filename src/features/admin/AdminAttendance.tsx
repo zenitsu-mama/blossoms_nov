@@ -93,25 +93,29 @@ export default function AdminAttendance() {
     if (ok) remove.mutate(r)
   }
 
-  // Sign-in sheet: everyone present (for mandatory events, everyone not marked absent), in the chosen session.
-  const presentRows = roster
-    .filter((r) => (mandatory ? r.attendance_status !== 'absent' : r.attendance_status === 'present'))
+  // Everyone registered in the chosen session, by team then name.
+  const sessionRows = roster
     .filter((r) => session === 'all' || (session === 'none' ? !r.session_starts_at : r.session_starts_at === session))
     .sort((a, b) => (a.team_name ?? '').localeCompare(b.team_name ?? '') || a.full_name.localeCompare(b.full_name))
+  // Sign-in sheet: everyone present (for mandatory events, everyone not marked absent).
+  const presentRows = sessionRows.filter((r) => (mandatory ? r.attendance_status !== 'absent' : r.attendance_status === 'present'))
 
-  function exportPresent() {
-    const csv = toCsv<RosterRow>(presentRows, [
-      { header: 'No.', value: (r) => presentRows.indexOf(r) + 1 },
+  const attendanceLabel = (r: RosterRow) =>
+    r.attendance_status === 'present' ? 'Present' : r.attendance_status === 'absent' ? 'Absent' : mandatory ? 'Present (not marked)' : 'Not marked'
+
+  function exportList(rows: RosterRow[], kind: 'present' | 'attendance') {
+    const csv = toCsv<RosterRow>(rows, [
+      { header: 'No.', value: (r) => rows.indexOf(r) + 1 },
       { header: 'Name', value: (r) => r.full_name },
       { header: 'Register no.', value: (r) => r.register_number },
       { header: 'Class', value: (r) => r.class_name },
       ...(roster.some((r) => r.team_name) ? [{ header: 'Team', value: (r: RosterRow) => r.team_name }] : []),
       { header: 'Phone', value: (r) => r.phone },
       ...(showSessions ? [{ header: 'Session', value: (r: RosterRow) => (r.session_starts_at ? formatTime(r.session_starts_at).toUpperCase() : '') }] : []),
-      { header: 'Sign', value: () => '' },
+      ...(kind === 'attendance' ? [{ header: 'Attendance', value: attendanceLabel }] : [{ header: 'Sign', value: () => '' }]),
     ])
     const name = (selectedEvent?.slug ?? 'event') + (session !== 'all' && session !== 'none' ? `-${formatTime(session).replace(/\W+/g, '')}` : '')
-    downloadCsv(`present-${name}.csv`, csv)
+    downloadCsv(`${kind}-${name}.csv`, csv)
   }
 
   function markRest(status: 'present' | 'absent') {
@@ -188,8 +192,11 @@ export default function AdminAttendance() {
               <span className="font-semibold text-ink/60 tabular-nums">
                 {unmarked} {mandatory ? 'unmarked (counted present)' : 'unmarked'}
               </span>
-              <Button size="sm" variant="outline" onClick={exportPresent} disabled={!presentRows.length} title="Present students with a Sign column, as a CSV">
+              <Button size="sm" variant="outline" onClick={() => exportList(presentRows, 'present')} disabled={!presentRows.length} title="Present students with a Sign column, as a CSV">
                 <Download className="w-4 h-4" /> Present list ({presentRows.length})
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => exportList(sessionRows, 'attendance')} disabled={!sessionRows.length} title="Everyone registered, with whether they were present, absent or not marked, as a CSV">
+                <Download className="w-4 h-4" /> Full attendance ({sessionRows.length})
               </Button>
               {unmarked > 0 && !mandatory && canEdit && (
                 <>
