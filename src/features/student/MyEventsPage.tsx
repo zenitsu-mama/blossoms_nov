@@ -1,4 +1,3 @@
-import { confirmDialog } from '@/components/ui/ConfirmDialog'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -13,7 +12,7 @@ import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth/authStore'
 import { SessionPicker } from '@/components/events/SessionPicker'
 import { registrationState } from '@/lib/api/events'
-import { getStudentRegistrations, cancelRegistration, changeSession, type MyRegistration } from '@/lib/api/registration'
+import { getStudentRegistrations, changeSession, type MyRegistration } from '@/lib/api/registration'
 import { chosenSlot, formatDateTime, formatDay, hasSessions, isPostponed, sessionLabel, slotDate, slotLabel } from '@/lib/eventDisplay'
 
 type Filter = 'active' | 'cancelled'
@@ -53,37 +52,12 @@ function findClashes(registrations: MyRegistration[]): Set<string> {
 export default function MyEventsPage() {
   const [filter, setFilter] = useState<Filter>('active')
   const { student } = useAuth()
-  const queryClient = useQueryClient()
 
-  const { data: registrations = [], isLoading, isError, refetch, isFetching } = useQuery({
+  const { data: registrations = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['my-registrations', student?.id],
     queryFn: getStudentRegistrations,
   })
 
-  const cancelMutation = useMutation({
-    mutationFn: (id: string) => cancelRegistration(id),
-    onSuccess: (res, id) => {
-      if (res.success) {
-        toast.success(res.message)
-        // Take the card off the list at once (a team withdrawal cancels every member's row), so it can't be
-        // tapped again and the list doesn't jump under the student's finger when the reload lands.
-        const cancelled = registrations.find((r) => r.id === id)
-        queryClient.setQueryData<MyRegistration[]>(['my-registrations', student?.id], (old) =>
-          old?.map((r) =>
-            r.id === id || (cancelled?.team && r.team?.team_name === cancelled.team.team_name && r.event?.id === cancelled.event?.id)
-              ? { ...r, registration_status: 'cancelled' }
-              : r
-          )
-        )
-      } else {
-        toast.error(res.message)
-      }
-      void queryClient.invalidateQueries()
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-  // No cancelling while one is in flight or the list is reloading: the cards may be about to move.
-  const cancelLocked = cancelMutation.isPending || isFetching
 
   const clashes = findClashes(registrations)
   const filtered = registrations
@@ -135,10 +109,7 @@ export default function MyEventsPage() {
       ) : (
         <ul className="space-y-4" aria-label="Your registrations">
           {filtered.map((reg) => (
-            <RegistrationCard key={reg.id} reg={reg} clash={clashes.has(reg.id)} onCancel={() => !cancelLocked && cancelMutation.mutate(reg.id)}
-              cancelling={cancelMutation.isPending && cancelMutation.variables === reg.id}
-              locked={cancelLocked}
-            />
+            <RegistrationCard key={reg.id} reg={reg} clash={clashes.has(reg.id)} />
           ))}
         </ul>
       )}
@@ -146,38 +117,12 @@ export default function MyEventsPage() {
   )
 }
 
-function RegistrationCard({
-  reg,
-  clash,
-  onCancel,
-  cancelling,
-  locked,
-}: {
-  reg: MyRegistration
-  clash: boolean
-  onCancel: () => void
-  cancelling: boolean
-  /** Another cancel is in flight or the list is reloading. */
-  locked: boolean
-}) {
+function RegistrationCard({ reg, clash }: { reg: MyRegistration; clash: boolean }) {
   const queryClient = useQueryClient()
   const multi = hasSessions(reg.event)
   const chosen = chosenSlot(reg.event, reg.slot_id)
   const slot = slotOf(reg)
   const active = reg.registration_status !== 'cancelled'
-  // Cancelling is allowed only within 24 hours of registering and while registration is open (the database checks this too).
-  const isOwner = active && (!reg.team || reg.team.is_leader)
-  const windowEnds = new Date(new Date(reg.registered_at).getTime() + 24 * 3600 * 1000)
-  const cancelBlocked = !reg.event
-    ? 'closed'
-    : reg.event.cancellation_allowed === false
-      ? 'not allowed'
-      : !registrationState(reg.event).open
-        ? 'closed'
-        : Date.now() > windowEnds.getTime()
-          ? 'window'
-          : null
-  const canCancel = isOwner && !cancelBlocked
   const canSwitch = multi && active && (!reg.team || reg.team.is_leader) && Boolean(reg.event && registrationState(reg.event).open)
 
   const switchSession = useMutation({
@@ -272,35 +217,9 @@ function RegistrationCard({
             <Link to={`/events/${reg.event.slug}`}>Event page</Link>
           </Button>
         )}
-        {canCancel && (
-          <Button
-            size="sm"
-            variant="ghost"
-            className="text-comic-red-deep"
-            isLoading={cancelling}
-            disabled={locked}
-            onClick={() => {
-              const msg = reg.team ? `Withdraw team ${reg.team.team_name} from ${reg.event?.title}? Every member is removed.` : `Cancel your registration for ${reg.event?.title}?`
-              void confirmDialog(msg, { danger: true, title: reg.team ? 'Withdraw team' : 'Cancel registration', confirmLabel: reg.team ? 'Withdraw team' : 'Cancel registration', cancelLabel: 'Keep it' }).then((ok) => ok && onCancel())
-            }}
-          >
-            {reg.team ? 'Withdraw team' : 'Cancel registration'}
-          </Button>
-        )}
-        {canCancel && (
-          <p className="text-xs text-ink/50 self-center">You can cancel until {formatDateTime(windowEnds.toISOString())}.</p>
-        )}
-        {isOwner && cancelBlocked && (
-          <p className="text-xs text-ink/50 self-center">
-            {cancelBlocked === 'window'
-              ? 'Registrations can only be cancelled within 24 hours of registering.'
-              : cancelBlocked === 'not allowed'
-                ? 'Cancellations are not allowed for this event.'
-                : 'Registration has closed, so this entry can no longer be cancelled.'}
-          </p>
-        )}
-        {active && reg.team && !reg.team.is_leader && (
-          <p className="text-xs text-ink/50 self-center">Only your team leader can withdraw this entry.</p>
+        {/* Students can't cancel a registration (migration 030). */}
+        {active && (
+          <p className="text-xs text-ink/50 self-center">Registrations can't be cancelled. If you can't take part, contact the event coordinator.</p>
         )}
       </div>
     </li>
