@@ -99,11 +99,13 @@ export default function AdminAttendance() {
     .sort((a, b) => (a.team_name ?? '').localeCompare(b.team_name ?? '') || a.full_name.localeCompare(b.full_name))
   // Sign-in sheet: everyone present (for mandatory events, everyone not marked absent).
   const presentRows = sessionRows.filter((r) => (mandatory ? r.attendance_status !== 'absent' : r.attendance_status === 'present'))
+  // Everyone marked absent.
+  const absentRows = sessionRows.filter((r) => r.attendance_status === 'absent')
 
   const attendanceLabel = (r: RosterRow) =>
     r.attendance_status === 'present' ? 'Present' : r.attendance_status === 'absent' ? 'Absent' : mandatory ? 'Present (not marked)' : 'Not marked'
 
-  function exportList(rows: RosterRow[], kind: 'present' | 'attendance') {
+  function exportList(rows: RosterRow[], kind: 'present' | 'absent' | 'attendance') {
     const csv = toCsv<RosterRow>(rows, [
       { header: 'No.', value: (r) => rows.indexOf(r) + 1 },
       { header: 'Name', value: (r) => r.full_name },
@@ -112,7 +114,7 @@ export default function AdminAttendance() {
       ...(roster.some((r) => r.team_name) ? [{ header: 'Team', value: (r: RosterRow) => r.team_name }] : []),
       { header: 'Phone', value: (r) => r.phone },
       ...(showSessions ? [{ header: 'Session', value: (r: RosterRow) => (r.session_starts_at ? formatTime(r.session_starts_at).toUpperCase() : '') }] : []),
-      ...(kind === 'attendance' ? [{ header: 'Attendance', value: attendanceLabel }] : [{ header: 'Sign', value: () => '' }]),
+      ...(kind === 'attendance' ? [{ header: 'Attendance', value: attendanceLabel }] : kind === 'present' ? [{ header: 'Sign', value: () => '' }] : []),
     ])
     const name = (selectedEvent?.slug ?? 'event') + (session !== 'all' && session !== 'none' ? `-${formatTime(session).replace(/\W+/g, '')}` : '')
     downloadCsv(`${kind}-${name}.csv`, csv)
@@ -194,6 +196,9 @@ export default function AdminAttendance() {
               </span>
               <Button size="sm" variant="outline" onClick={() => exportList(presentRows, 'present')} disabled={!presentRows.length} title="Present students with a Sign column, as a CSV">
                 <Download className="w-4 h-4" /> Present list ({presentRows.length})
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => exportList(absentRows, 'absent')} disabled={!absentRows.length} title="Students marked absent, as a CSV">
+                <Download className="w-4 h-4" /> Absent list ({absentRows.length})
               </Button>
               <Button size="sm" variant="outline" onClick={() => exportList(sessionRows, 'attendance')} disabled={!sessionRows.length} title="Everyone registered, with whether they were present, absent or not marked, as a CSV">
                 <Download className="w-4 h-4" /> Full attendance ({sessionRows.length})
